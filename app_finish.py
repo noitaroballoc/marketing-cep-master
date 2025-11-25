@@ -25,7 +25,7 @@ st.set_page_config(
 )
 
 # -----------------------------------------------------------------------------
-# [로그인 기능] 디자인 개선 (화면 중앙 정렬 + 입력창 축소)
+# [로그인 기능] 화면 정중앙 배치 (CSS 및 레이아웃 조정)
 # -----------------------------------------------------------------------------
 def check_password():
     """Returns `True` if the user had the correct password."""
@@ -38,43 +38,46 @@ def check_password():
         else:
             st.session_state["password_correct"] = False
 
-    # 로그인 상태가 아닐 때 화면 구성
+    # 로그인이 안 된 상태일 때만 실행
     if "password_correct" not in st.session_state or not st.session_state["password_correct"]:
         
-        # 1. 위쪽 여백을 만들어 화면 중앙으로 내림 (<br> 태그 반복)
-        st.markdown("<br>" * 10, unsafe_allow_html=True)
+        # [디자인 수정] 1. 위쪽 여백을 확실하게 줘서 화면 중앙으로 내리기
+        st.markdown("<br>" * 12, unsafe_allow_html=True)
         
-        # 2. 좌우 여백을 둬서 입력창 크기 조절 (비율: 2:1:2)
-        col1, col2, col3 = st.columns([2, 1, 2])
+        # [디자인 수정] 2. 좌우 여백을 줘서 중앙 집중형 배치 (비율 1:1.5:1)
+        col1, col2, col3 = st.columns([1, 1.5, 1])
         
         with col2:
-            st.header("🔒 Team Login")
-            st.caption("CCFM 전용 접속 코드를 입력하세요.")
-            
-            # 입력창 생성
-            st.text_input(
-                label="Password",
-                type="password", 
-                on_change=password_entered, 
-                key="password",
-                label_visibility="collapsed" # 라벨 숨김 (깔끔하게)
-            )
-            
-            # 비밀번호 틀렸을 때 에러 메시지 표시
-            if "password_correct" in st.session_state and not st.session_state["password_correct"]:
-                st.error("😕 비밀번호가 틀렸습니다.")
+            # 깔끔한 박스 안에 로그인 창 넣기
+            with st.container(border=True):
+                st.markdown("<h2 style='text-align: center;'>🔒 Team Access</h2>", unsafe_allow_html=True)
+                st.caption("팀 전용 접속 코드를 입력하세요.")
                 
+                st.text_input(
+                    label="Password",
+                    type="password", 
+                    on_change=password_entered, 
+                    key="password",
+                    label_visibility="collapsed", # 라벨 숨김
+                    placeholder="비밀번호 입력"
+                )
+                
+                if "password_correct" in st.session_state and not st.session_state["password_correct"]:
+                    st.error("🚫 비밀번호가 일치하지 않습니다.")
+        
+        # 아래쪽 여백
+        st.markdown("<br>" * 15, unsafe_allow_html=True)
         return False
     
     else:
         return True
 
-# 로그인이 안 되어 있으면 여기서 중단 (아래 메인 코드 실행 안 됨)
+# 비밀번호 확인 전까지는 여기서 코드 중단
 if not check_password():
     st.stop()
 
 # =============================================================================
-# ▼▼▼ 여기서부터 메인 앱 코드 (로그인 성공 시에만 보임) ▼▼▼
+# ▼▼▼ 메인 앱 코드 (로그인 성공 시 실행) ▼▼▼
 # =============================================================================
 
 @st.dialog("💡 이 프로그램의 핵심")
@@ -128,6 +131,7 @@ with st.sidebar:
     with st.expander("💡 프로그램 활용 팁"):
         st.info(
             """
+            [아이디어 + 레퍼런스 도구]
             AI의 결과물은 완벽한 정답이 아닙니다.
             경쟁사 대비 차별점을 찾기 위한 '생각의 재료'로 활용하세요.
             """
@@ -135,7 +139,7 @@ with st.sidebar:
     
     st.caption("Developed for **Performance Marketers & Designers**")
 
-st.title("🧠 CEP 퍼포먼스 마케팅 생성 프로그램")
+st.title("🧠 CEP 퍼포먼스 마케팅 솔루션")
 
 st.info("💡 **CEP(Category Entry Point)란?** 소비자가 구매를 결심하는 '결정적 계기(상황)'를 뜻하며, 브랜드보다 상황을 먼저 선점하는 것이 핵심입니다.")
 
@@ -419,3 +423,4 @@ with tab2:
                 h_df = pd.DataFrame(h['data'])
                 st.download_button("📥 엑셀 다운로드", h_df.to_csv(index=False).encode('utf-8-sig'), f"History_{h['timestamp']}.csv")
                 st.dataframe(h_df[['cep_title', 'hooking_copy', 'visual_guide']])
+
