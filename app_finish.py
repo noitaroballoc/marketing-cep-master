@@ -63,10 +63,10 @@ def show_cep_guide():
     st.markdown(
         """
         ### 1️⃣ 직접 검색 기반 분석 (Search Agent)
-        이 프로그램은 AI가 상상하는 것이 아니라, **실제 웹 검색(리뷰, 기사, 경쟁사)**을 수행하여 데이터를 수집한 뒤 분석합니다.
+        이 프로그램은 AI가 상상하는 것이 아니라, 실제 웹 검색(리뷰, 기사, 경쟁사)을 수행하여 데이터를 수집한 뒤 분석합니다.
         
         ### 2️⃣ 무엇을 얻을 수 있나요?
-        **'뇌피셜'이 아닌 '팩트(Fact)'에 기반한** 날카로운 경쟁 우위 전략과 CEP를 도출합니다.
+        '뇌피셜'이 아닌 '팩트(Fact)'에 기반한 날카로운 경쟁 우위 전략과 CEP를 도출합니다.
         
         ### 3️⃣ 활용 가이드
         검색 시간이 30초 정도 더 소요될 수 있으나, 결과의 퀄리티는 훨씬 높습니다.
@@ -119,7 +119,7 @@ with st.sidebar:
 
 st.title("🌐 CEP 퍼포먼스 마케팅 솔루션")
 
-st.info("💡 **CEP(Category Entry Point)란?** 소비자가 구매를 결심하는 **결정적 계기(상황)**를 뜻하며, 브랜드보다 상황을 먼저 선점하는 것이 핵심입니다.")
+st.info("💡 **CEP(Category Entry Point)란?** 소비자가 구매를 결심하는 결정적 계기(상황)를 뜻하며, 브랜드보다 상황을 먼저 선점하는 것이 핵심입니다.")
 
 st.markdown(
     """
@@ -431,3 +431,4 @@ with tab2:
                 h_df = pd.DataFrame(h['data'])
                 st.download_button("📥 엑셀 다운로드", h_df.to_csv(index=False).encode('utf-8-sig'), f"History_{h['timestamp']}.csv")
                 st.dataframe(h_df[['cep_title', 'hooking_copy', 'visual_guide']])
+
