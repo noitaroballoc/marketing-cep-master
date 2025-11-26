@@ -69,10 +69,10 @@ def show_cep_guide():
         **'뇌피셜'이 아닌 '팩트(Fact)'에 기반한** 날카로운 경쟁 우위 전략과 CEP를 도출합니다.
         
         ### 3️⃣ 활용 가이드
-        검색 시간이 5~10초 정도 더 소요될 수 있으나, 결과의 퀄리티는 훨씬 높습니다.
+        검색 시간이 30초 정도 더 소요될 수 있으나, 결과의 퀄리티는 훨씬 높습니다.
         """
     )
-    if st.button("전략 짜러 가기! 🚀", type="primary"):
+    if st.button("확인했습니다! 전략을 짜러 가시죠 🚀", type="primary"):
         st.rerun()
 
 if 'cep_popup_shown' not in st.session_state:
@@ -123,7 +123,7 @@ st.info("💡 **CEP(Category Entry Point)란?** 소비자가 구매를 결심하
 
 st.markdown(
     """
-    **AI를 100% 신뢰하지 마세요! 아이디어만 얻고 더 깊게 담당자분들과 논의해보세요**
+    **AI를 100% 신뢰하지 마세요! 아이디어만 참고해주세요.**
     """
 )
 
@@ -146,7 +146,7 @@ with tab1:
         )
         
         st.caption("💡 팁1: 제품명을 정확히 적어야 AI가 웹사이트와 후기를 제대로 찾아냅니다.")
-        st.caption("💡 팁2: 원하는 전략이 안나오셨나요? 다시 버튼을 클릭해보세요. 새로운 전략으로 구성해줄거에요!")
+        st.caption("💡 팁2: 원한 전략이 도출 안되셨나요? 버튼을 다시 클릭하셔서 신규 전략을 확인하세요.")
         
         generate_btn = st.button("🚀 전략 도출하기", use_container_width=True, type="primary")
 
@@ -293,29 +293,28 @@ def generate_strategy(api_key, name, target, details, platform, tone):
     
     genai.configure(api_key=api_key)
     
-    # [🔥 핵심 수정: 무한 재시도 및 모델 자동 전환]
-    # 오류 발생 시 -> 다른 모델로 바꿔서 재시도하는 리스트
-    model_candidates = [
-        'gemini-1.5-flash', 
-        'gemini-1.5-pro', 
-        'gemini-pro',
-        'gemini-1.0-pro'
+    # [🔥 수정됨] 여러 모델을 순차적으로 시도하여 하나라도 걸리면 성공시키는 로직
+    # 1.5-flash -> 1.5-pro -> 1.0-pro 순서로 시도
+    candidate_models = [
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
+        "gemini-pro"
     ]
     
     last_error = None
     
-    for model_name in model_candidates:
+    for model_name in candidate_models:
         try:
             model = genai.GenerativeModel(model_name)
             config = GenerationConfig(temperature=1.0) 
             response = model.generate_content(prompt, generation_config=config)
-            return response.text # 성공하면 바로 리턴
+            return response.text # 성공하면 바로 반환
         except Exception as e:
             last_error = e
-            continue # 실패하면 다음 모델로 넘어감
+            continue # 실패하면 다음 모델로 시도
             
-    # 모든 모델 실패 시 에러 반환
-    return f"Error: 모든 모델 연결 실패. ({str(last_error)})"
+    # 모든 모델이 실패했을 경우에만 에러 메시지 반환
+    return f"Error: 모든 AI 모델 연결 실패. ({str(last_error)})"
 
 if generate_btn:
     if not product_name or not target_audience or not product_details:
@@ -329,6 +328,7 @@ if generate_btn:
                     if raw_text.startswith("Error"):
                         st.error("🚨 AI 처리 중 오류가 발생했습니다.")
                         st.error(raw_text)
+                        st.warning("💡 Tip: requirements.txt 파일의 내용을 `google-generativeai>=0.7.2`로 업데이트 했는지 확인해주세요.")
                     else:
                         data = extract_json_from_text(raw_text)
                         
