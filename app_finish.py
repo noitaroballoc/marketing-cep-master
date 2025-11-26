@@ -42,7 +42,7 @@ def check_password():
         with col2:
             with st.container(border=True):
                 st.markdown("<h2 style='text-align: center;'>🔒 Team Access</h2>", unsafe_allow_html=True)
-                st.caption("CCFM 전용 접속 코드드를 입력하세요.")
+                st.caption("CCFM 전용 접속 코드를 입력하세요.")
                 st.text_input(label="Password", type="password", on_change=password_entered, key="password", label_visibility="collapsed", placeholder="비밀번호 입력")
                 if "password_correct" in st.session_state and not st.session_state["password_correct"]:
                     st.error("🚫 비밀번호가 일치하지 않습니다.")
@@ -66,7 +66,7 @@ def show_cep_guide():
         이 프로그램은 AI가 상상하는 것이 아니라, 실제 웹 검색(리뷰, 기사, 경쟁사)을 수행하여 데이터를 수집한 뒤 분석합니다.
         
         ### 2️⃣ 무엇을 얻을 수 있나요?
-        '뇌피셜'이 아닌 '팩트(Fact)'에 기반한 날카로운 경쟁 우위 전략과 CEP를 도출합니다.
+        **'뇌피셜'이 아닌 '팩트(Fact)'에 기반한** 날카로운 경쟁 우위 전략과 CEP를 도출합니다.
         
         ### 3️⃣ 활용 가이드
         검색 시간이 30초 정도 더 소요될 수 있으나, 결과의 퀄리티는 훨씬 높습니다.
@@ -115,15 +115,15 @@ with st.sidebar:
             """
         )
     
-    st.caption("Developed for **CONCRETE FARMERS**")
+    st.caption("Developed for **Performance Marketers & Designers**")
 
 st.title("🌐 CEP 퍼포먼스 마케팅 솔루션")
 
-st.info("💡 **CEP(Category Entry Point)란?** 소비자가 구매를 결심하는 결정적 계기(상황)를 뜻하며, 브랜드보다 상황을 먼저 선점하는 것이 핵심입니다.")
+st.info("💡 **CEP(Category Entry Point)란?** 소비자가 구매를 결심하는 '결정적 계기(상황)'를 뜻하며, 브랜드보다 상황을 먼저 선점하는 것이 핵심입니다.")
 
 st.markdown(
     """
-    **가장 현실적이고 날카로운 경쟁 우위 전략을 도출하여 운영시 참고용으로 활용해주세요!**
+    **AI를 100% 믿지마세요! 참고만 하시고, 아이디어만 얻어가세요**
     """
 )
 
@@ -145,10 +145,9 @@ with tab1:
             height=200
         )
         
-        st.caption("💡 팁1: 제품명을 정확히 적어야 AI가 웹사이트와 후기를 제대로 찾아냅니다.")
-        st.caption("💡 팁2: 새로운 전략을 추가적으로 도출하고 싶으면 다시 버튼을 클릭해주세요.")
+        st.caption("💡 팁: 제품명을 정확히 적어야 AI가 웹사이트와 후기를 제대로 찾아냅니다.")
         
-        generate_btn = st.button("🚀 전략 도출하기", use_container_width=True, type="primary")
+        generate_btn = st.button("🚀 웹 분석 및 전략 도출하기", use_container_width=True, type="primary")
 
     with col2:
         st.subheader("📊 전략 도출 결과")
@@ -159,22 +158,7 @@ with tab1:
 # -----------------------------------------------------------------------------
 def find_active_model(api_key):
     genai.configure(api_key=api_key)
-    try:
-        available_models = []
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                available_models.append(m.name)
-        
-        for m in available_models:
-            if 'flash' in m.lower(): return m
-        for m in available_models:
-            if '1.5' in m and 'pro' in m.lower(): return m
-        for m in available_models:
-            if 'gemini-pro' in m.lower(): return m
-            
-        return available_models[0] if available_models else 'models/gemini-pro'
-    except:
-        return 'gemini-pro'
+    return 'gemini-1.5-flash'
 
 def perform_web_search(query, max_results=3):
     try:
@@ -351,13 +335,17 @@ if generate_btn:
                             visual_label = "🎬 숏폼 영상 기획(오프닝/연출)"
 
                         for idx, item in enumerate(data):
-                            with st.expander(f"📌 {item.get('cep_title', f'CEP {idx+1}')}", expanded=True):
+                            # [디자인 수정] 1. CEP 타이틀은 h3 (###) 정도의 큰 폰트로 강조
+                            cep_title_text = f"📌 {item.get('cep_title', f'CEP {idx+1}')}"
+                            with st.expander(cep_title_text, expanded=True):
+                                
+                                # 제목을 한 번 더 크게 강조 (CSS 없이 마크다운 헤더 사용)
+                                st.markdown(f"### {item.get('cep_title', '')}")
                                 
                                 st.markdown(f"**[상황]**")
                                 st.write(item.get('situation_summary', '내용 없음'))
                                 
                                 st.markdown(f"**[생각/동기]**")
-                                # [수정 완료] SyntaxError가 발생했던 f-string 부분 수정
                                 thought_content = item.get('thought', '').replace('"', '')
                                 st.write(f'"{thought_content}"')
                                 
@@ -366,7 +354,9 @@ if generate_btn:
                                 
                                 st.markdown("---")
                                 
-                                st.subheader("🚀 퍼포먼스 활용 포인트")
+                                # [디자인 수정] 2. 퍼포먼스 활용 포인트 헤더는 h5 (#####) 정도로 작게 축소
+                                st.markdown("##### 🚀 퍼포먼스 활용 포인트")
+                                
                                 st.info(f"**🏷️ 컨셉 키워드:** {item.get('concept_keyword', '키워드 없음')}")
                                 
                                 copy_text = item.get('hooking_copy', '')
@@ -431,4 +421,3 @@ with tab2:
                 h_df = pd.DataFrame(h['data'])
                 st.download_button("📥 엑셀 다운로드", h_df.to_csv(index=False).encode('utf-8-sig'), f"History_{h['timestamp']}.csv")
                 st.dataframe(h_df[['cep_title', 'hooking_copy', 'visual_guide']])
-
