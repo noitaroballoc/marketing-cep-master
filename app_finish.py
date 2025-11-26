@@ -58,7 +58,7 @@ if not check_password():
 # 메인 앱 코드
 # =============================================================================
 
-@st.dialog("💡 이 프로그램의 핵심")
+@st.dialog("💡 이 프로그램의 핵심 가치")
 def show_cep_guide():
     st.markdown(
         """
@@ -69,7 +69,7 @@ def show_cep_guide():
         **'뇌피셜'이 아닌 '팩트(Fact)'에 기반한** 날카로운 경쟁 우위 전략과 CEP를 도출합니다.
         
         ### 3️⃣ 활용 가이드
-        검색 시간이 30초 정도 더 소요될 수 있으나, 결과의 퀄리티는 훨씬 높습니다.
+        검색 시간이 5~10초 정도 더 소요될 수 있으나, 결과의 퀄리티는 훨씬 높습니다.
         """
     )
     if st.button("전략 짜러 가기! 🚀", type="primary"):
@@ -123,7 +123,7 @@ st.info("💡 **CEP(Category Entry Point)란?** 소비자가 구매를 결심하
 
 st.markdown(
     """
-    **AI를 100% 믿지마세요! 참고만 하시고, 아이디어만 얻어가세요**
+    **AI를 100% 신뢰하지 마세요! 아이디어만 얻고 더 깊게 담당자분들과 논의해보세요**
     """
 )
 
@@ -145,9 +145,10 @@ with tab1:
             height=200
         )
         
-        st.caption("💡 팁: 제품명을 정확히 적어야 AI가 웹사이트와 후기를 제대로 찾아냅니다.")
+        st.caption("💡 팁1: 제품명을 정확히 적어야 AI가 웹사이트와 후기를 제대로 찾아냅니다.")
+        st.caption("💡 팁2: 원하는 전략이 안나오셨나요? 다시 버튼을 클릭해보세요. 새로운 전략으로 구성해줄거에요!")
         
-        generate_btn = st.button("🚀 웹 분석 및 전략 도출하기", use_container_width=True, type="primary")
+        generate_btn = st.button("🚀 전략 도출하기", use_container_width=True, type="primary")
 
     with col2:
         st.subheader("📊 전략 도출 결과")
@@ -156,10 +157,6 @@ with tab1:
 # -----------------------------------------------------------------------------
 # Backend Logic
 # -----------------------------------------------------------------------------
-def find_active_model(api_key):
-    genai.configure(api_key=api_key)
-    return 'gemini-1.5-flash'
-
 def perform_web_search(query, max_results=3):
     try:
         with DDGS() as ddgs:
@@ -295,16 +292,30 @@ def generate_strategy(api_key, name, target, details, platform, tone):
     """
     
     genai.configure(api_key=api_key)
-    active_model_name = find_active_model(api_key) 
     
-    try:
-        model = genai.GenerativeModel(active_model_name)
-        config = GenerationConfig(temperature=1.0) 
-        response = model.generate_content(prompt, generation_config=config)
-        return response.text
-        
-    except Exception as e:
-        return f"Error: 모델 생성 실패. ({str(e)})"
+    # [🔥 핵심 수정: 무한 재시도 및 모델 자동 전환]
+    # 오류 발생 시 -> 다른 모델로 바꿔서 재시도하는 리스트
+    model_candidates = [
+        'gemini-1.5-flash', 
+        'gemini-1.5-pro', 
+        'gemini-pro',
+        'gemini-1.0-pro'
+    ]
+    
+    last_error = None
+    
+    for model_name in model_candidates:
+        try:
+            model = genai.GenerativeModel(model_name)
+            config = GenerationConfig(temperature=1.0) 
+            response = model.generate_content(prompt, generation_config=config)
+            return response.text # 성공하면 바로 리턴
+        except Exception as e:
+            last_error = e
+            continue # 실패하면 다음 모델로 넘어감
+            
+    # 모든 모델 실패 시 에러 반환
+    return f"Error: 모든 모델 연결 실패. ({str(last_error)})"
 
 if generate_btn:
     if not product_name or not target_audience or not product_details:
@@ -335,11 +346,9 @@ if generate_btn:
                             visual_label = "🎬 숏폼 영상 기획(오프닝/연출)"
 
                         for idx, item in enumerate(data):
-                            # [디자인 수정] 1. CEP 타이틀은 h3 (###) 정도의 큰 폰트로 강조
                             cep_title_text = f"📌 {item.get('cep_title', f'CEP {idx+1}')}"
                             with st.expander(cep_title_text, expanded=True):
                                 
-                                # 제목을 한 번 더 크게 강조 (CSS 없이 마크다운 헤더 사용)
                                 st.markdown(f"### {item.get('cep_title', '')}")
                                 
                                 st.markdown(f"**[상황]**")
@@ -354,9 +363,7 @@ if generate_btn:
                                 
                                 st.markdown("---")
                                 
-                                # [디자인 수정] 2. 퍼포먼스 활용 포인트 헤더는 h5 (#####) 정도로 작게 축소
                                 st.markdown("##### 🚀 퍼포먼스 활용 포인트")
-                                
                                 st.info(f"**🏷️ 컨셉 키워드:** {item.get('concept_keyword', '키워드 없음')}")
                                 
                                 copy_text = item.get('hooking_copy', '')
