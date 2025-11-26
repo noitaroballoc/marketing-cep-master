@@ -4,9 +4,7 @@ from google.generativeai.types import GenerationConfig
 import pandas as pd
 import json
 import datetime
-
-# 기존 import 밑에 추가
-from duckduckgo_search import DDGS
+from duckduckgo_search import DDGS 
 
 # -----------------------------------------------------------------------------
 # [보안] 비밀번호 & API 키 설정
@@ -23,81 +21,58 @@ except FileNotFoundError:
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="CEP 퍼포먼스 마케팅 솔루션",
-    page_icon="🧠",
+    page_icon="🌐",
     layout="wide"
 )
 
 # -----------------------------------------------------------------------------
-# [로그인 기능] 화면 정중앙 배치 (CSS 및 레이아웃 조정)
+# [로그인 기능]
 # -----------------------------------------------------------------------------
 def check_password():
-    """Returns `True` if the user had the correct password."""
-
     def password_entered():
-        """Checks whether a password entered by the user is correct."""
         if st.session_state["password"] == TEAM_PASSWORD:
             st.session_state["password_correct"] = True
-            del st.session_state["password"]  # 비밀번호 흔적 지우기
+            del st.session_state["password"]
         else:
             st.session_state["password_correct"] = False
 
-    # 로그인이 안 된 상태일 때만 실행
     if "password_correct" not in st.session_state or not st.session_state["password_correct"]:
-        
-        # [디자인 수정] 1. 위쪽 여백을 확실하게 줘서 화면 중앙으로 내리기
         st.markdown("<br>" * 12, unsafe_allow_html=True)
-        
-        # [디자인 수정] 2. 좌우 여백을 줘서 중앙 집중형 배치 (비율 1:1.5:1)
         col1, col2, col3 = st.columns([1, 1.5, 1])
-        
         with col2:
-            # 깔끔한 박스 안에 로그인 창 넣기
             with st.container(border=True):
                 st.markdown("<h2 style='text-align: center;'>🔒 Team Access</h2>", unsafe_allow_html=True)
-                st.caption("팀 전용 접속 코드를 입력하세요.")
-                
-                st.text_input(
-                    label="Password",
-                    type="password", 
-                    on_change=password_entered, 
-                    key="password",
-                    label_visibility="collapsed", # 라벨 숨김
-                    placeholder="비밀번호 입력"
-                )
-                
+                st.caption("CCFM 전용 접속 코드를 입력하세요.")
+                st.text_input(label="Password", type="password", on_change=password_entered, key="password", label_visibility="collapsed", placeholder="비밀번호 입력")
                 if "password_correct" in st.session_state and not st.session_state["password_correct"]:
                     st.error("🚫 비밀번호가 일치하지 않습니다.")
-        
-        # 아래쪽 여백
         st.markdown("<br>" * 15, unsafe_allow_html=True)
         return False
-    
     else:
         return True
 
-# 비밀번호 확인 전까지는 여기서 코드 중단
 if not check_password():
     st.stop()
 
 # =============================================================================
-# ▼▼▼ 메인 앱 코드 (로그인 성공 시 실행) ▼▼▼
+# 메인 앱 코드
 # =============================================================================
 
 @st.dialog("💡 이 프로그램의 핵심")
 def show_cep_guide():
     st.markdown(
         """
-        ### 1️⃣ 이 프로그램의 본질
-        단순 자동화가 아닌, 광고 운영 및 소재 제작을 위한 '아이디어와 레퍼런스'를 제공하는 '러닝메이트'입니다.
+        ### 1️⃣ 직접 검색 기반 분석
+        이 프로그램은 AI가 상상하는 것이 아니라, **실제 웹 검색(리뷰, 기사, 경쟁사)**을 수행하여 데이터를 수집한 뒤 분석합니다.
         
         ### 2️⃣ 무엇을 얻을 수 있나요?
-        CEP(상황) 분석을 통해 "왜 경쟁사가 아닌 우리 제품이어야 하는가?"에 대한 명확한 구매 이유와 소구점을 도출합니다.
+        **'뇌피셜'이 아닌 '팩트(Fact)'에 기반한** 날카로운 경쟁 우위 전략과 CEP를 도출합니다.
         
         ### 3️⃣ 활용 가이드
-        AI가 제안한 전략을 그대로 쓰기보다, '팀원들의 인사이트를 더해' 우리 브랜드만의 날카로운 무기로 발전시켜 주세요.
+        검색 시간이 5~10초 정도 더 소요될 수 있으나, 결과의 퀄리티는 훨씬 높습니다.
         """
     )
-    if st.button("확인했습니다! 전략을 짜러 가시죠 🚀", type="primary"):
+    if st.button("전략 짜러 가기! 🚀", type="primary"):
         st.rerun()
 
 if 'cep_popup_shown' not in st.session_state:
@@ -109,7 +84,7 @@ if 'history' not in st.session_state:
 
 with st.sidebar:
     st.header("🎛️ 마케팅 옵션 설정")
-    st.success("✅ Master Logic 활성화")
+    st.success("✅ Real-time Search 활성화")
     
     st.markdown("---")
     
@@ -131,24 +106,24 @@ with st.sidebar:
 
     st.markdown("---")
     
-    with st.expander("💡 프로그램 활용 팁"):
+    with st.expander("💡 업데이트 노트 (Real Search)"):
         st.info(
             """
-            [아이디어 + 레퍼런스 도구]
-            AI의 결과물은 완벽한 정답이 아닙니다.
-            경쟁사 대비 차별점을 찾기 위한 '생각의 재료'로 활용하세요.
+            **[직접 검색 엔진 탑재]**
+            이제 프로그램이 직접 인터넷을 검색하여 최신 리뷰와 경쟁사 동향을 긁어옵니다.
+            Gemini는 이 '실제 데이터'를 읽고 분석하므로 훨씬 정확합니다.
             """
         )
     
     st.caption("Developed for **Performance Marketers & Designers**")
 
-st.title("🧠 CEP 퍼포먼스 마케팅 솔루션")
+st.title("🌐 CEP 퍼포먼스 마케팅 솔루션")
 
 st.info("💡 **CEP(Category Entry Point)란?** 소비자가 구매를 결심하는 '결정적 계기(상황)'를 뜻하며, 브랜드보다 상황을 먼저 선점하는 것이 핵심입니다.")
 
 st.markdown(
     """
-    **경쟁사 대비 우리 제품을 찾아야만 하는 결정적 이유(CEP)를 도출하고, 방향성을 찾아가세요!**
+    **가장 현실적이고 날카로운 경쟁 우위 전략을 도출하여 운영시 참고해보세요!**
     """
 )
 
@@ -162,44 +137,31 @@ with tab1:
     with col1:
         st.subheader("📦 제품 및 타겟 정보")
         
-        product_name = st.text_input("제품/서비스 명", placeholder="예: 다이어트학교 리압스텝퍼")
+        product_name = st.text_input("제품/서비스 명 (정확히 입력)", placeholder="예: 다이어트학교 리압스텝퍼")
         target_audience = st.text_input("🎯 핵심 타겟", placeholder="예: 4050 갱년기 여성, 운동 싫어하는 주부")
         product_details = st.text_area(
-            "제품 상세 특징", 
-            placeholder="예: 층간소음 없는 공기주입형 스텝퍼. 관절 무리 없음. TV 보면서 5분만 해도 땀이 나는 고효율 유산소.",
+            "제품 상세 특징 (추가 정보)", 
+            placeholder="제품의 고유한 강점이나 이벤트 정보를 적어주시면 검색 결과와 결합하여 분석합니다.",
             height=200
         )
         
-        st.caption("💡 팁: 결과가 마음에 들지 않거나 새로운 아이디어가 필요하면 버튼을 다시 눌러보세요. 매번 다른 전략이 나옵니다.")
+        st.caption("💡 팁1: 제품명을 정확히 적어야 AI가 웹사이트와 후기를 제대로 찾아냅니다.")
+        st.caption("💡 팁2: 전략을 재구성하고 싶다면, 버튼을 다시 눌러보세요.")
         
-        generate_btn = st.button("🚀 경쟁 우위 전략 도출하기", use_container_width=True, type="primary")
+        generate_btn = st.button("🚀 전략 도출하기", use_container_width=True, type="primary")
 
     with col2:
         st.subheader("📊 전략 도출 결과")
         result_container = st.container()
 
+# -----------------------------------------------------------------------------
+# Backend Logic
+# -----------------------------------------------------------------------------
 def find_active_model(api_key):
     genai.configure(api_key=api_key)
-    try:
-        available_models = []
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                available_models.append(m.name)
-        
-        for m in available_models:
-            if 'flash' in m.lower(): return m
-        for m in available_models:
-            if '1.5' in m and 'pro' in m.lower(): return m
-        for m in available_models:
-            if 'gemini-pro' in m.lower(): return m
-            
-        return available_models[0] if available_models else 'models/gemini-pro'
-    except:
-        return 'gemini-pro'
+    return 'gemini-1.5-flash'
 
-# [추가할 코드]
 def perform_web_search(query, max_results=3):
-    """DuckDuckGo를 이용해 실제 웹 검색 결과를 텍스트로 반환"""
     try:
         with DDGS() as ddgs:
             results = list(ddgs.text(query, region='kr-kr', safesearch='off', max_results=max_results))
@@ -215,23 +177,37 @@ def check_compliance_risks(text):
     found = [word for word in risky_words if word in text]
     return found
 
-# [교체할 코드]
+def extract_json_from_text(text):
+    """AI 응답에서 JSON 부분만 스마트하게 발라내는 함수"""
+    try:
+        # 1. 가장 먼저 [ 로 시작하고 ] 로 끝나는 부분을 찾음
+        start_idx = text.find('[')
+        end_idx = text.rfind(']')
+        
+        if start_idx != -1 and end_idx != -1:
+            json_str = text[start_idx : end_idx + 1]
+            return json.loads(json_str)
+        else:
+            # 2. 실패 시 기존 방식 시도
+            clean_text = text.replace("```json", "").replace("```", "").strip()
+            return json.loads(clean_text)
+    except Exception as e:
+        raise Exception(f"JSON 파싱 실패: {str(e)}")
+
 def generate_strategy(api_key, name, target, details, platform, tone):
     
-    # 1. [검색 단계] AI에게 주기 전에 우리가 먼저 검색해서 데이터를 모은다.
+    # 1. [검색 단계]
     search_query_1 = f"{name} 후기 장단점"
     search_query_2 = f"{name} 상세페이지 특징"
     
-    # 검색 수행 (시간이 좀 걸림)
     search_result_1 = perform_web_search(search_query_1)
     search_result_2 = perform_web_search(search_query_2)
     
-    # 검색된 데이터를 합침
     collected_data = f"""
-    **[웹 검색 결과 1: 실제 고객 후기 및 반응]**
+    **[웹 검색 결과 1: 실제 고객 후기]**
     {search_result_1}
     
-    **[웹 검색 결과 2: 제품 상세 정보 및 특징]**
+    **[웹 검색 결과 2: 제품 특징]**
     {search_result_2}
     """
 
@@ -267,7 +243,6 @@ def generate_strategy(api_key, name, target, details, platform, tone):
     compliance_instructions = """
     **[⚠️ 심의/반려 주의 (Compliance Check)]**
     - 표시광고법 및 의료법 위반 소지가 있는 단어('최고', '100%', '완치', '무조건', '보장', '부작용 없음')는 절대 사용하지 마세요.
-    - 과대광고로 계정이 정지될 수 있습니다. 대신 구체적인 묘사나 은유를 사용하세요.
     """
 
     tone_instructions = ""
@@ -282,9 +257,6 @@ def generate_strategy(api_key, name, target, details, platform, tone):
     당신은 대한민국 최고의 퍼포먼스 마케터이자 카피라이터입니다.
     
     **[참고 자료: 실시간 웹 검색 데이터]**
-    아래 내용은 현재 인터넷에 올라와 있는 실제 제품 정보와 고객들의 반응입니다.
-    이 내용을 철저히 분석하여, '뇌피셜'이 아닌 **'시장 팩트'에 기반한 전략**을 수립하세요.
-    
     {collected_data}
     
     ---
@@ -300,20 +272,11 @@ def generate_strategy(api_key, name, target, details, platform, tone):
     - **선택된 톤**: {tone}
 
     {platform_instructions}
-    
     {compliance_instructions}
-    
     {tone_instructions}
 
-    [⚠️ 필수 사고 과정 (Hidden Logic)]
-    1. **Fact Checking**: [참고 자료]의 실제 후기에서 타겟의 불만과 니즈를 찾으십시오.
-    2. **Winning Point Extraction**: 경쟁사 제품이 해결해주지 못하는 우리 제품만의 차별점을 [참고 자료]를 통해 검증하십시오.
-    3. **7W Expansion**: 상황을 아주 구체적으로 그리십시오.
-    4. **3C Validation**: 빈도, 적합성, 경쟁을 따져 가장 유효한 7개를 선정하십시오.
-
     [최종 출력 포맷 (JSON)]
-    위 사고 과정을 통해 도출된 내용을 아래 JSON 형식으로 출력하세요.
-    **Visual Guide**는 선택된 매체가 숏폼이면 '영상 연출', 이미지면 '디자인 구성'으로 작성하세요.
+    위 사고 과정을 통해 도출된 내용을 **오직 JSON 형식으로만** 출력하세요. 서론이나 부연 설명은 금지합니다.
     
     **[중요: 검색 키워드 추출]**
     `ref_keyword` 필드에는 제품명(예: 리압스텝퍼)이 아닌, **광고 라이브러리에서 검색했을 때 레퍼런스가 많이 나올 법한 '대표 카테고리 키워드'(예: 다이어트, 붓기, 홈트레이닝)** 를 1개만 단답형으로 적으세요.
@@ -321,7 +284,7 @@ def generate_strategy(api_key, name, target, details, platform, tone):
     ```json
     [
       {{
-        "cep_title": "CEP N. [상황]과 [동기]를 결합한 직관적인 타이틀 (예: 야근에 지쳤을 때, 죄책감 없는 야식이 필요할 때)",
+        "cep_title": "CEP N. [상황]과 [동기]를 결합한 직관적인 타이틀",
         "situation_summary": "웹 검색 데이터와 7W 분석을 토대로 작성된 구체적인 상황 묘사 (1~2문장)",
         "thought": "고객의 속마음/동기 (따옴표 포함한 독백)",
         "trigger_behavior": "검색 키워드 및 행동 패턴 (화살표 활용)",
@@ -340,7 +303,6 @@ def generate_strategy(api_key, name, target, details, platform, tone):
     active_model_name = find_active_model(api_key) 
     
     try:
-        # 이제는 일반 모델에 '검색 결과 텍스트'를 직접 넣어주므로, 도구 설정 불필요
         model = genai.GenerativeModel(active_model_name)
         config = GenerationConfig(temperature=1.0) 
         response = model.generate_content(prompt, generation_config=config)
@@ -354,16 +316,16 @@ if generate_btn:
         st.warning("⚠️ 모든 정보를 입력해주세요.")
     else:
         with col2:
-            with st.spinner(f"🌐 '{product_name}' 웹 검색 및 경쟁사 분석 중... (시간이 조금 더 걸릴 수 있습니다)"):
+            with st.spinner(f"🌐 '{product_name}' 웹 검색 및 경쟁사 분석 중..."):
                 raw_text = generate_strategy(MY_API_KEY, product_name, target_audience, product_details, platform, tone)
                 
                 try:
                     if raw_text.startswith("Error"):
-                        st.error("🚨 AI 검색 기능 오류가 발생했습니다.")
+                        st.error("🚨 AI 처리 중 오류가 발생했습니다.")
                         st.error(raw_text)
                     else:
-                        json_str = raw_text.replace("```json", "").replace("```", "").strip()
-                        data = json.loads(json_str)
+                        # [수정됨] 스마트 파싱 함수 사용
+                        data = extract_json_from_text(raw_text)
                         
                         save_data = {
                             "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -444,8 +406,9 @@ if generate_btn:
                         st.download_button("📥 전략 리포트 엑셀 다운로드", csv, f"CEP_Logic_Strategy_{product_name}.csv", "text/csv", type="primary")
 
                 except Exception as e:
-                    st.error("데이터 처리 중 오류가 발생했습니다.")
-                    st.text(raw_text)
+                    st.error(f"데이터 처리 중 오류가 발생했습니다. ({str(e)})")
+                    st.text("▼ AI가 반환한 원본 데이터 (디버깅용) ▼")
+                    st.text(raw_text) # 문제가 생기면 원본을 보여줘서 원인 파악
 
 with tab2:
     if not st.session_state.history:
