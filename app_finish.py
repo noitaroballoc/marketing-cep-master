@@ -20,7 +20,7 @@ except FileNotFoundError:
 # 페이지 기본 설정
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="CEP 퍼포먼스 마케팅 솔루션 Master",
+    page_title="CEP 퍼포먼스 마케팅 솔루션",
     page_icon="🌐",
     layout="wide"
 )
@@ -42,7 +42,7 @@ def check_password():
         with col2:
             with st.container(border=True):
                 st.markdown("<h2 style='text-align: center;'>🔒 Team Access</h2>", unsafe_allow_html=True)
-                st.caption("팀 전용 접속 비밀번호를 입력하세요.")
+                st.caption("CCFM 전용 접속 코드드를 입력하세요.")
                 st.text_input(label="Password", type="password", on_change=password_entered, key="password", label_visibility="collapsed", placeholder="비밀번호 입력")
                 if "password_correct" in st.session_state and not st.session_state["password_correct"]:
                     st.error("🚫 비밀번호가 일치하지 않습니다.")
@@ -58,7 +58,7 @@ if not check_password():
 # 메인 앱 코드
 # =============================================================================
 
-@st.dialog("💡 이 프로그램의 핵심 가치 (Core Essence)")
+@st.dialog("💡 이 프로그램의 핵심")
 def show_cep_guide():
     st.markdown(
         """
@@ -69,10 +69,10 @@ def show_cep_guide():
         **'뇌피셜'이 아닌 '팩트(Fact)'에 기반한** 날카로운 경쟁 우위 전략과 CEP를 도출합니다.
         
         ### 3️⃣ 활용 가이드
-        검색 시간이 5~10초 정도 더 소요될 수 있으나, 결과의 퀄리티는 훨씬 높습니다.
+        검색 시간이 30초 정도 더 소요될 수 있으나, 결과의 퀄리티는 훨씬 높습니다.
         """
     )
-    if st.button("확인했습니다! 전략을 짜러 가시죠 🚀", type="primary"):
+    if st.button("전략 짜러 가기! 🚀", type="primary"):
         st.rerun()
 
 if 'cep_popup_shown' not in st.session_state:
@@ -115,15 +115,15 @@ with st.sidebar:
             """
         )
     
-    st.caption("Developed for **Performance Marketers & Designers**")
+    st.caption("Developed for **CONCRETE FARMERS**")
 
-st.title("🌐 CEP 퍼포먼스 마케팅 솔루션 Master")
+st.title("🌐 CEP 퍼포먼스 마케팅 솔루션")
 
-st.info("💡 **CEP(Category Entry Point)란?** 소비자가 구매를 결심하는 **'결정적 계기(상황)'**를 뜻하며, 브랜드보다 상황을 먼저 선점하는 것이 핵심입니다.")
+st.info("💡 **CEP(Category Entry Point)란?** 소비자가 구매를 결심하는 **결정적 계기(상황)**를 뜻하며, 브랜드보다 상황을 먼저 선점하는 것이 핵심입니다.")
 
 st.markdown(
     """
-    **실시간 웹 검색 데이터를 AI에게 학습시켜, 가장 현실적이고 날카로운 경쟁 우위 전략을 도출합니다.**
+    **가장 현실적이고 날카로운 경쟁 우위 전략을 도출하여 운영시 참고용으로 활용해주세요!**
     """
 )
 
@@ -145,9 +145,10 @@ with tab1:
             height=200
         )
         
-        st.caption("💡 팁: 제품명을 정확히 적어야 AI가 웹사이트와 후기를 제대로 찾아냅니다.")
+        st.caption("💡 팁1: 제품명을 정확히 적어야 AI가 웹사이트와 후기를 제대로 찾아냅니다.")
+        st.caption("💡 팁2: 새로운 전략을 추가적으로 도출하고 싶으면 다시 버튼을 클릭해주세요.")
         
-        generate_btn = st.button("🚀 웹 분석 및 전략 도출하기", use_container_width=True, type="primary")
+        generate_btn = st.button("🚀 전략 도출하기", use_container_width=True, type="primary")
 
     with col2:
         st.subheader("📊 전략 도출 결과")
@@ -157,10 +158,6 @@ with tab1:
 # Backend Logic
 # -----------------------------------------------------------------------------
 def find_active_model(api_key):
-    """
-    API 키로 접근 가능한 모델 목록을 조회하여, 
-    사용 가능한 최신 모델 이름을 자동으로 반환합니다. (오류 방지)
-    """
     genai.configure(api_key=api_key)
     try:
         available_models = []
@@ -168,7 +165,6 @@ def find_active_model(api_key):
             if 'generateContent' in m.supported_generation_methods:
                 available_models.append(m.name)
         
-        # 우선순위: Flash -> 1.5 Pro -> Pro
         for m in available_models:
             if 'flash' in m.lower(): return m
         for m in available_models:
@@ -197,11 +193,9 @@ def check_compliance_risks(text):
     return found
 
 def extract_json_from_text(text):
-    """AI 응답에서 JSON 부분만 스마트하게 발라내는 함수"""
     try:
         start_idx = text.find('[')
         end_idx = text.rfind(']')
-        
         if start_idx != -1 and end_idx != -1:
             json_str = text[start_idx : end_idx + 1]
             return json.loads(json_str)
@@ -317,8 +311,6 @@ def generate_strategy(api_key, name, target, details, platform, tone):
     """
     
     genai.configure(api_key=api_key)
-    
-    # [수정됨] 모델 자동 탐색 함수 사용
     active_model_name = find_active_model(api_key) 
     
     try:
@@ -365,6 +357,7 @@ if generate_btn:
                                 st.write(item.get('situation_summary', '내용 없음'))
                                 
                                 st.markdown(f"**[생각/동기]**")
+                                # [수정 완료] SyntaxError가 발생했던 f-string 부분 수정
                                 thought_content = item.get('thought', '').replace('"', '')
                                 st.write(f'"{thought_content}"')
                                 
@@ -410,3 +403,31 @@ if generate_btn:
                                 kwd_for_voc = item.get('concept_keyword', '')
                                 voc_query = f"{product_name} {kwd_for_voc}"
                                 voc_encoded = voc_query.replace(" ", "+")
+                                
+                                c1, c2, c3 = st.columns(3)
+                                with c1:
+                                    st.link_button("🟢 네이버 블로그 후기", f"https://search.naver.com/search.naver?where=blog&query={voc_encoded}")
+                                with c2:
+                                    st.link_button("☕ 네이버 카페 반응", f"https://search.naver.com/search.naver?where=article&query={voc_encoded}")
+                                with c3:
+                                    st.link_button("📰 관련 뉴스/기사", f"https://www.google.com/search?q={voc_encoded}&tbm=nws")
+
+                        df = pd.DataFrame(data)
+                        csv = df.to_csv(index=False).encode('utf-8-sig')
+                        st.download_button("📥 전략 리포트 엑셀 다운로드", csv, f"CEP_Logic_Strategy_{product_name}.csv", "text/csv", type="primary")
+
+                except Exception as e:
+                    st.error(f"데이터 처리 중 오류가 발생했습니다. ({str(e)})")
+                    st.text("▼ AI가 반환한 원본 데이터 (디버깅용) ▼")
+                    st.text(raw_text)
+
+with tab2:
+    if not st.session_state.history:
+        st.info("아직 기록이 없습니다.")
+    else:
+        for h in st.session_state.history:
+            h_platform = h.get('platform', '일반')
+            with st.expander(f"🕒 {h['timestamp']} - {h['product']} ({h_platform})"):
+                h_df = pd.DataFrame(h['data'])
+                st.download_button("📥 엑셀 다운로드", h_df.to_csv(index=False).encode('utf-8-sig'), f"History_{h['timestamp']}.csv")
+                st.dataframe(h_df[['cep_title', 'hooking_copy', 'visual_guide']])
