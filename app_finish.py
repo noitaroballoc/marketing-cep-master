@@ -5,6 +5,9 @@ import pandas as pd
 import json
 import datetime
 
+# 기존 import 밑에 추가
+from duckduckgo_search import DDGS
+
 # -----------------------------------------------------------------------------
 # [보안] 비밀번호 & API 키 설정
 # -----------------------------------------------------------------------------
@@ -194,13 +197,45 @@ def find_active_model(api_key):
     except:
         return 'gemini-pro'
 
+# [추가할 코드]
+def perform_web_search(query, max_results=3):
+    """DuckDuckGo를 이용해 실제 웹 검색 결과를 텍스트로 반환"""
+    try:
+        with DDGS() as ddgs:
+            results = list(ddgs.text(query, region='kr-kr', safesearch='off', max_results=max_results))
+            search_summary = ""
+            for idx, res in enumerate(results):
+                search_summary += f"[{idx+1}] 제목: {res['title']}\n내용: {res['body']}\n링크: {res['href']}\n\n"
+            return search_summary if search_summary else "검색 결과 없음"
+    except Exception as e:
+        return f"검색 중 오류 발생: {str(e)}"
+
 def check_compliance_risks(text):
     risky_words = ["최고", "100%", "완치", "무조건", "보장", "부작용 없", "즉시", "유일", "최초"]
     found = [word for word in risky_words if word in text]
     return found
 
+# [교체할 코드]
 def generate_strategy(api_key, name, target, details, platform, tone):
     
+    # 1. [검색 단계] AI에게 주기 전에 우리가 먼저 검색해서 데이터를 모은다.
+    search_query_1 = f"{name} 후기 장단점"
+    search_query_2 = f"{name} 상세페이지 특징"
+    
+    # 검색 수행 (시간이 좀 걸림)
+    search_result_1 = perform_web_search(search_query_1)
+    search_result_2 = perform_web_search(search_query_2)
+    
+    # 검색된 데이터를 합침
+    collected_data = f"""
+    **[웹 검색 결과 1: 실제 고객 후기 및 반응]**
+    {search_result_1}
+    
+    **[웹 검색 결과 2: 제품 상세 정보 및 특징]**
+    {search_result_2}
+    """
+
+    # 2. [프롬프트 작성]
     platform_instructions = ""
     if "GFA/배너" in platform:
         platform_instructions = """
@@ -246,15 +281,16 @@ def generate_strategy(api_key, name, target, details, platform, tone):
     prompt = f"""
     당신은 대한민국 최고의 퍼포먼스 마케터이자 카피라이터입니다.
     
-    **[Step 1. 웹 검색 및 분석 수행]**
-    먼저 Google Search 도구를 사용하여 다음 내용을 검색하고 학습하세요:
-    1. '{name}'의 실제 상세페이지 내용, 주요 기능, 브랜드 메시지.
-    2. '{name}' 또는 해당 카테고리(예: {target} 관련 제품)의 실제 네이버 블로그/카페 후기, 불만 사항(Pain Point).
-    3. 경쟁사 제품들의 마케팅 소구점 및 SEO 키워드.
+    **[참고 자료: 실시간 웹 검색 데이터]**
+    아래 내용은 현재 인터넷에 올라와 있는 실제 제품 정보와 고객들의 반응입니다.
+    이 내용을 철저히 분석하여, '뇌피셜'이 아닌 **'시장 팩트'에 기반한 전략**을 수립하세요.
     
-    **[Step 2. 전략 수립]**
-    위에서 검색한 '실제 데이터'와 아래 입력 정보를 결합하여 **최적의 CEP 7가지**를 도출하세요.
-    뇌피셜이 아닌, 검색된 팩트에 기반하여 더욱 날카롭고 구체적인 상황을 묘사해야 합니다.
+    {collected_data}
+    
+    ---
+
+    **[미션]**
+    위 검색 데이터와 아래 입력 정보를 결합하여 **최적의 CEP(Category Entry Point) 7가지**를 도출하세요.
 
     [입력 정보]
     - 제품명: {name}
@@ -270,8 +306,8 @@ def generate_strategy(api_key, name, target, details, platform, tone):
     {tone_instructions}
 
     [⚠️ 필수 사고 과정 (Hidden Logic)]
-    1. **Fact Checking**: 검색된 실제 제품의 강점과 고객의 실제 고민을 매칭하십시오.
-    2. **Winning Point Extraction**: 검색 결과를 통해 파악한 경쟁사의 약점을 공략하는 우리만의 소구점을 찾으십시오.
+    1. **Fact Checking**: [참고 자료]의 실제 후기에서 타겟의 불만과 니즈를 찾으십시오.
+    2. **Winning Point Extraction**: 경쟁사 제품이 해결해주지 못하는 우리 제품만의 차별점을 [참고 자료]를 통해 검증하십시오.
     3. **7W Expansion**: 상황을 아주 구체적으로 그리십시오.
     4. **3C Validation**: 빈도, 적합성, 경쟁을 따져 가장 유효한 7개를 선정하십시오.
 
@@ -301,19 +337,17 @@ def generate_strategy(api_key, name, target, details, platform, tone):
     """
     
     genai.configure(api_key=api_key)
+    active_model_name = find_active_model(api_key) 
     
     try:
-        model = genai.GenerativeModel(
-            'models/gemini-1.5-flash',
-            tools='google_search_retrieval' 
-        )
-        
+        # 이제는 일반 모델에 '검색 결과 텍스트'를 직접 넣어주므로, 도구 설정 불필요
+        model = genai.GenerativeModel(active_model_name)
         config = GenerationConfig(temperature=1.0) 
         response = model.generate_content(prompt, generation_config=config)
         return response.text
         
     except Exception as e:
-        return f"Error: 검색 기능 실행 실패. ({str(e)})"
+        return f"Error: 모델 생성 실패. ({str(e)})"
 
 if generate_btn:
     if not product_name or not target_audience or not product_details:
@@ -423,4 +457,5 @@ with tab2:
                 h_df = pd.DataFrame(h['data'])
                 st.download_button("📥 엑셀 다운로드", h_df.to_csv(index=False).encode('utf-8-sig'), f"History_{h['timestamp']}.csv")
                 st.dataframe(h_df[['cep_title', 'hooking_copy', 'visual_guide']])
+
 
