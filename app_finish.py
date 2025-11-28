@@ -7,23 +7,6 @@ import datetime
 from duckduckgo_search import DDGS 
 
 # -----------------------------------------------------------------------------
-# [진단 모드] 라이브러리 버전 확인 (화면 상단 출력)
-# -----------------------------------------------------------------------------
-# 이 코드는 현재 서버에 설치된 버전을 눈으로 확인시켜줍니다.
-st.set_page_config(page_title="CEP 퍼포먼스 마케팅 솔루션 Master", page_icon="🌐", layout="wide")
-
-try:
-    version = genai.__version__
-    # 버전이 낮으면 경고, 높으면 통과
-    if version < "0.7.0":
-        st.error(f"🚨 현재 설치된 구글 AI 버전: {version} (구버전입니다. 앱을 삭제 후 재배포하세요!)")
-    else:
-        # 정상일 경우 이 부분은 사용자에게 안 보이게 처리하거나 작게 표시
-        pass 
-except:
-    st.error("🚨 구글 AI 라이브러리가 설치되지 않았습니다.")
-
-# -----------------------------------------------------------------------------
 # [보안] 비밀번호 & API 키 설정
 # -----------------------------------------------------------------------------
 try:
@@ -32,6 +15,15 @@ try:
 except FileNotFoundError:
     st.error("🚨 서버 설정 오류: Secrets에 API 키와 비밀번호가 설정되지 않았습니다.")
     st.stop()
+
+# -----------------------------------------------------------------------------
+# 페이지 기본 설정
+# -----------------------------------------------------------------------------
+st.set_page_config(
+    page_title="CEP 퍼포먼스 마케팅 솔루션",
+    page_icon="🌐",
+    layout="wide"
+)
 
 # -----------------------------------------------------------------------------
 # [로그인 기능]
@@ -66,7 +58,7 @@ if not check_password():
 # 메인 앱 코드
 # =============================================================================
 
-@st.dialog("💡 이 프로그램의 핵심")
+@st.dialog("💡 프로그램 설명")
 def show_cep_guide():
     st.markdown(
         """
@@ -80,7 +72,7 @@ def show_cep_guide():
         검색 시간이 30초 정도 더 소요될 수 있으나, 결과의 퀄리티는 훨씬 높습니다.
         """
     )
-    if st.button("확인했습니다! 전략을 짜러 가시죠 🚀", type="primary"):
+    if st.button("전략 짜러가기! 🚀", type="primary"):
         st.rerun()
 
 if 'cep_popup_shown' not in st.session_state:
@@ -131,7 +123,7 @@ st.info("💡 **CEP(Category Entry Point)란?** 소비자가 구매를 결심하
 
 st.markdown(
     """
-    **AI를 100% 신뢰하지 마세요! 새로운 아이디어로만 참고하고 더 디벨롭 해주세요.**
+    **AI를 100% 신뢰하지 말고 아이디어만 얻으세요! 그리고 더 나은 방향성으로 나아가세요.**
     """
 )
 
@@ -154,7 +146,7 @@ with tab1:
         )
         
         st.caption("💡 팁1: 제품명을 정확히 적어야 AI가 웹사이트와 후기를 제대로 찾아냅니다.")
-        st.caption("💡 팁2: 원하는 전략이 안보이시나요? 다시 버튼을 눌러 새로운 전략을 확인하세요.")
+        st.caption("💡 팁2: 원하는 전략이 안나오셨나요? 다시 버튼을 누르면 새로운 전략이 도출됩니다.")
         
         generate_btn = st.button("🚀 웹 분석 및 전략 도출하기", use_container_width=True, type="primary")
 
@@ -165,6 +157,36 @@ with tab1:
 # -----------------------------------------------------------------------------
 # Backend Logic
 # -----------------------------------------------------------------------------
+def get_best_available_model(api_key):
+    """
+    [핵심 수정] 사용 가능한 모델 목록을 조회해서
+    가장 좋은 모델의 '정확한 이름'을 가져옵니다. (404 에러 방지)
+    """
+    genai.configure(api_key=api_key)
+    try:
+        # 1. 사용 가능한 모델 리스트 조회
+        all_models = list(genai.list_models())
+        
+        # 2. 'generateContent' 기능을 지원하는 모델만 필터링
+        text_models = [m.name for m in all_models if 'generateContent' in m.supported_generation_methods]
+        
+        # 3. 우선순위에 따라 모델 선택 (Flash -> Pro -> 1.0)
+        # 리스트에 있는 '정확한 이름(models/gemini-xxx)'을 반환함
+        for m in text_models:
+            if 'gemini-1.5-flash' in m: return m
+        for m in text_models:
+            if 'gemini-1.5-pro' in m: return m
+        for m in text_models:
+            if 'gemini-pro' in m: return m
+            
+        # 아무것도 없으면 첫 번째 거라도 반환
+        if text_models:
+            return text_models[0]
+        else:
+            return None
+    except Exception as e:
+        return None
+
 def perform_web_search(query, max_results=3):
     try:
         with DDGS() as ddgs:
@@ -299,32 +321,22 @@ def generate_strategy(api_key, name, target, details, platform, tone):
     ```
     """
     
-    genai.configure(api_key=api_key)
-    
-    # [🔥 핵심 수정] 모델 자동 전환 로직 강화
-    # 1.5-flash -> 1.5-pro -> 1.0-pro 순으로 시도
-    # 각 모델별로 지원하는 기능을 자동으로 감지하여 에러 회피
-    
+    # [🔥 핵심 수정] 모델 자동 감지 후 실행
     try:
-        # 1차 시도: 1.5-flash
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # 1. 사용할 모델 이름 가져오기
+        active_model = get_best_available_model(api_key)
+        
+        if not active_model:
+            return "Error: 사용 가능한 AI 모델을 찾을 수 없습니다. (API Key 권한을 확인해주세요)"
+            
+        # 2. 찾은 모델로 생성 시도
+        model = genai.GenerativeModel(active_model)
         config = GenerationConfig(temperature=1.0) 
         response = model.generate_content(prompt, generation_config=config)
         return response.text
-    except:
-        try:
-            # 2차 시도: 1.5-pro
-            model = genai.GenerativeModel('gemini-1.5-pro')
-            response = model.generate_content(prompt)
-            return response.text
-        except:
-            try:
-                # 3차 시도: 1.0-pro (가장 안정적)
-                model = genai.GenerativeModel('gemini-pro')
-                response = model.generate_content(prompt)
-                return response.text
-            except Exception as e:
-                return f"Error: 모든 모델 연결 실패. ({str(e)})"
+        
+    except Exception as e:
+        return f"Error: AI 처리 중 오류 발생. ({str(e)})"
 
 if generate_btn:
     if not product_name or not target_audience or not product_details:
