@@ -18,7 +18,7 @@ except (KeyError, FileNotFoundError):
     st.stop()
 
 # -----------------------------------------------------------------------------
-# 페이지 기본 설정 (원래 디자인 유지)
+# 페이지 기본 설정
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="CEP 퍼포먼스 마케팅 솔루션",
@@ -27,7 +27,7 @@ st.set_page_config(
 )
 
 # -----------------------------------------------------------------------------
-# [로그인 기능] (원래 디자인 100% 유지)
+# [로그인 기능] (디자인 유지)
 # -----------------------------------------------------------------------------
 def check_password():
     def password_entered():
@@ -38,7 +38,7 @@ def check_password():
             st.session_state["password_correct"] = False
 
     if "password_correct" not in st.session_state or not st.session_state["password_correct"]:
-        st.markdown("<br>" * 12, unsafe_allow_html=True)
+        st.markdown("<br>" * 10, unsafe_allow_html=True)
         col1, col2, col3 = st.columns([1, 1.5, 1])
         with col2:
             with st.container(border=True):
@@ -50,140 +50,174 @@ def check_password():
                 )
                 if "password_correct" in st.session_state and not st.session_state["password_correct"]:
                     st.error("🚫 비밀번호가 일치하지 않습니다.")
-        st.markdown("<br>" * 15, unsafe_allow_html=True)
         return False
-    else:
-        return True
+    return True
 
 if not check_password():
     st.stop()
 
 # -----------------------------------------------------------------------------
-# 메인 앱 UI 및 팝업 (원래 디자인 유지)
+# 세션 상태 초기화 및 팝업
 # -----------------------------------------------------------------------------
-@st.dialog("💡 이 프로그램의 핵심")
+if 'history' not in st.session_state:
+    st.session_state.history = []
+
+@st.dialog("💡 시니어 마케터 가이드")
 def show_cep_guide():
     st.markdown("""
-        ### 1️⃣ 이 프로그램의 본질
-        단순 자동화가 아닌, '아이디어와 레퍼런스'를 제공하는 '러닝메이트'입니다.
-        ### 2️⃣ 무엇을 얻을 수 있나요?
-        "왜 우리 제품이어야 하는가?"에 대한 명확한 구매 이유를 도출합니다.
-        ### 3️⃣ 활용 가이드
-        아이디어에 팀원들의 인사이트를 더해 날카로운 무기로 발전시켜 주세요.
+        ### 1️⃣ 시니어 마케팅 사고 (Senior Logic)
+        단순 카피 생성이 아닙니다. 타겟의 결핍(Pain Point)과 구매 동기를 분석하여 전략적 가설을 수립합니다.
+        ### 2️⃣ 데이터 기반 분석 (Fact Based)
+        웹 검색을 통해 수집된 실제 고객 반응과 경쟁사 데이터를 바탕으로 전략을 짭니다.
+        ### 3️⃣ 매체 최적화 가이드
+        각 매체 특성에 맞는 비주얼 가이드와 예상 KPI를 함께 제공합니다.
     """)
-    if st.button("확인했습니다! 전략을 짜러 가시죠 🚀", type="primary"):
+    if st.button("전략 수립 시작하기 🚀", type="primary"):
         st.rerun()
 
 if 'cep_popup_shown' not in st.session_state:
     show_cep_guide()
     st.session_state.cep_popup_shown = True
 
-if 'history' not in st.session_state:
-    st.session_state.history = []
-
 # -----------------------------------------------------------------------------
-# 사이드바 설정 (원래 디자인 유지)
+# 사이드바 설정 (디자인 유지)
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.header("🎛️ 마케팅 옵션 설정")
-    st.success("✅ Master Logic 활성화")
+    st.success("✅ Senior Master Logic 활성화")
     st.markdown("---")
-    st.subheader("1. 광고 매체 (Platform)")
     platform = st.radio(
-        "어디에 노출할 소재인가요?",
+        "광고 매체 선택",
         ["SNS 숏폼 (릴스/틱톡)", "SNS 피드 (인스타/페북)", "GFA/배너 (네이버/카카오)", "검색광고 (TDA)"],
-        index=2
+        index=1
     )
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.subheader("2. 톤앤매너 (Tone)")
     tone = st.select_slider(
-        "카피의 강도를 선택하세요",
-        options=["순한맛 (공감/위로)", "논리적 (기능/정보)", "매운맛 (공포/팩폭)"],
-        value="매운맛 (공포/팩폭)"
+        "카피 강도 설정",
+        options=["순한맛 (공감)", "논리적 (팩트)", "매운맛 (손실회피)"],
+        value="매운맛 (손실회피)"
     )
-    st.markdown("---")
-    with st.expander("💡 프로그램 활용 팁"):
-        st.info("AI의 결과물은 완벽한 정답이 아닙니다. '생각의 재료'로 활용하세요.")
-    st.caption("Developed for **Performance Marketers & Designers**")
+    st.caption("Developed for Professional Marketers")
 
 # -----------------------------------------------------------------------------
-# 메인 화면 구성 (원래 디자인 유지)
+# 메인 화면 구성
 # -----------------------------------------------------------------------------
-st.title("🧠 CEP 퍼포먼스 마케팅 솔루션")
-st.info("💡 **CEP(Category Entry Point)란?** 소비자가 구매를 결심하는 '결정적 계기(상황)'를 뜻합니다.")
-st.markdown("**경쟁사 대비 우리 제품을 찾아야만 하는 결정적 이유(CEP)를 도출하세요!**")
+st.title("🧠 시니어 CEP 퍼포먼스 전략 솔루션")
+st.info("💡 **시니어 전략 모델:** 단순 카피가 아닌 '상황(CEP) - 동기 - 해결논리' 체계로 분석합니다.")
 st.divider()
 
 tab1, tab2 = st.tabs(["⚡ 전략 생성", "🗂️ 저장된 기록"])
 
 with tab1:
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        st.subheader("📦 제품 및 타겟 정보")
-        product_name = st.text_input("제품/서비스 명", placeholder="예: 다이어트학교 리압스텝퍼")
-        target_audience = st.text_input("🎯 핵심 타겟", placeholder="예: 4050 갱년기 여성")
-        product_details = st.text_area("제품 상세 특징", height=200, placeholder="예: 층간소음 없는 공기주입형 스텝퍼...")
-        generate_btn = st.button("🚀 경쟁 우위 전략 도출하기", use_container_width=True, type="primary")
+    col_in, col_out = st.columns([1, 1.2])
 
-    with col2:
-        st.subheader("📊 전략 도출 결과")
-        result_container = st.container()
+    with col_in:
+        st.subheader("📦 기획 데이터 입력")
+        with st.container(border=True):
+            p_name = st.text_input("제품/서비스명", placeholder="예: 고기어트 다이어트 도시락")
+            p_target = st.text_input("🎯 핵심 타겟 세그먼트", placeholder="예: 야근이 잦고 배달음식에 지친 30대 직장인")
+            p_details = st.text_area("🔧 제품 핵심 특장점", height=200, placeholder="저칼로리, 실온보관, 고단백 등 상세 내용을 적어주세요.")
+            generate_btn = st.button("🚀 시니어 전략 리포트 도출", use_container_width=True, type="primary")
+
+    with col_out:
+        st.subheader("📊 전략 리포트 분석 결과")
+        result_area = st.container()
 
 # -----------------------------------------------------------------------------
-# [에러 방지 핵심 로직] 404/429 완벽 방어
+# [Back-end] 시니어 마케팅 엔진
 # -----------------------------------------------------------------------------
-def generate_strategy_safe(api_key, name, target, details, platform, tone):
+def get_safe_model(api_key):
     genai.configure(api_key=api_key)
-    
-    # [404 해결] 사용 가능한 모델 리스트를 조회하여 유효한 이름 선택
-    available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-    model_name = 'models/gemini-1.5-flash' if 'models/gemini-1.5-flash' in available_models else available_models[0]
-    
+    try:
+        # 사용 가능한 모델 중 flash 모델을 우선 검색 (404 방지)
+        models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        for m in models:
+            if '1.5-flash' in m: return m
+        return models[0]
+    except: return 'gemini-pro'
+
+def generate_senior_strategy(api_key, name, target, details, platform, tone):
+    # 1. 실시간 웹 검색 (Fact 수집)
+    try:
+        with DDGS() as ddgs:
+            search_res = list(ddgs.text(f"{name} 실제 고객 후기 단점", max_results=2))
+            context = "\n".join([r['body'][:250] for r in search_res])
+    except: context = "검색 데이터 없음"
+
+    # 2. 모델 설정 및 시니어 프롬프트 주입
+    model_name = get_safe_model(api_key)
     model = genai.GenerativeModel(model_name)
     
-    prompt = f"제품:{name}, 타겟:{target}, 매체:{platform}, 톤:{tone}\n특징:{details}\n위 정보를 바탕으로 마케팅 CEP 7가지를 JSON 배열로 작성해."
+    prompt = f"""
+    당신은 10년차 시니어 퍼포먼스 마케터입니다. {name} 제품에 대해 {platform} 매체에 최적화된 전략을 수립하세요.
+    [데이터]: {context} / [타겟]: {target} / [제품특징]: {details} / [톤]: {tone}
 
-    # [429 해결] 재시도 로직
+    [사고 단계]
+    1. 상황(CEP): 고객이 우리 제품을 떠올리는 결정적 순간 정의.
+    2. 페인포인트: 타겟이 느끼는 가장 큰 심리적/기능적 결핍.
+    3. 후킹 논리: 제품 특징을 어떻게 해결책으로 제시할 것인가?
+    
+    [결과 형식] 반드시 아래 JSON 배열만 출력하세요. 다른 말은 금지합니다.
+    [
+      {{
+        "title": "전략 컨셉 명칭",
+        "situation": "구체적인 라이프스타일 상황",
+        "logic": "제품 소구점 연결 논리",
+        "main_copy": "매체 최적화 후킹 카피",
+        "visual": "디자이너를 위한 비주얼 가이드",
+        "kpi": "예상 개선 지표"
+      }}
+    ]
+    """
+
     for attempt in range(3):
         try:
-            response = model.generate_content(prompt, generation_config=GenerationConfig(temperature=0.7))
+            response = model.generate_content(prompt, generation_config=GenerationConfig(temperature=0.75))
             return response.text
         except Exception as e:
             if "429" in str(e):
-                time.sleep(10 * (attempt + 1))
+                time.sleep(15 * (attempt + 1))
                 continue
             return f"Error: {str(e)}"
-    return "Error: 할당량 초과. 잠시 후 다시 시도해주세요."
+    return "Error: 할당량 소진"
 
 # -----------------------------------------------------------------------------
-# 결과 출력부 (원래 디자인 유지)
+# 실행 및 UI 렌더링
 # -----------------------------------------------------------------------------
 if generate_btn:
-    if not product_name or not target_audience or not product_details:
-        st.warning("⚠️ 모든 정보를 입력해주세요.")
+    if not p_name or not p_target:
+        st.warning("⚠️ 제품명과 타겟 정보는 필수입니다.")
     else:
-        with col2:
-            with st.spinner("분석 중..."):
-                raw_text = generate_strategy_safe(MY_API_KEY, product_name, target_audience, product_details, platform, tone)
+        with col_out:
+            with st.spinner("시니어 마케터가 가설을 수립하고 있습니다..."):
+                raw_text = generate_senior_strategy(MY_API_KEY, p_name, p_target, p_details, platform, tone)
                 
                 if "Error" in raw_text:
                     st.error(raw_text)
                 else:
                     try:
-                        # 파싱 및 출력 로직 (기존 디자인 유지)
-                        json_str = raw_text.replace("```json", "").replace("```", "").strip()
-                        data = json.loads(json_str)
-                        # ... (이하 결과 출력 코드 생략, 기존과 동일하게 작동)
-                        st.success("전략 도출이 완료되었습니다!")
-                        st.json(data) # 예시용 간단 출력, 실제 배포시 원래 expander 코드 사용 가능
+                        # JSON 파싱 및 UI 가공
+                        clean_json = raw_text.replace("```json", "").replace("```", "").strip()
+                        strategies = json.loads(clean_json)
+                        
+                        st.success(f"✅ 전략 수립 완료!")
+                        
+                        for i, s in enumerate(strategies):
+                            with st.container(border=True):
+                                st.markdown(f"#### 📍 전략 {i+1}: {s['title']}")
+                                st.write(f"**🕵️ 상황 분석:** {s['situation']}")
+                                st.write(f"**🧠 소구 논리:** {s['logic']}")
+                                st.divider()
+                                st.error(f"**⚡ 메인 카피:** {s['main_copy']}")
+                                st.info(f"**🎨 비주얼 가이드:** {s['visual']}")
+                                st.caption(f"📈 기대 효과: {s['kpi']}")
+                        
+                        # 히스토리 저장
+                        st.session_state.history.insert(0, {"timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "product": p_name, "data": strategies})
                     except:
-                        st.error("결과 해석 중 오류 발생")
+                        st.error("해석 중 오류 발생")
                         st.text(raw_text)
 
 with tab2:
-    if not st.session_state.history:
-        st.info("아직 기록이 없습니다.")
-    else:
-        for h in st.session_state.history:
-            with st.expander(f"🕒 {h['timestamp']} - {h['product']}"):
-                st.write(h['data'])
+    for h in st.session_state.history:
+        with st.expander(f"🕒 {h['timestamp']} - {h['product']}"):
+            st.write(h['data'])
