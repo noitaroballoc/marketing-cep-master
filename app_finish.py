@@ -4,6 +4,7 @@ from google.generativeai.types import GenerationConfig
 import pandas as pd
 import json
 import datetime
+import time
 from duckduckgo_search import DDGS 
 
 # -----------------------------------------------------------------------------
@@ -12,8 +13,8 @@ from duckduckgo_search import DDGS
 try:
     MY_API_KEY = st.secrets["GOOGLE_API_KEY"]
     TEAM_PASSWORD = st.secrets["TEAM_PASSWORD"]
-except FileNotFoundError:
-    st.error("🚨 서버 설정 오류: Secrets에 API 키와 비밀번호가 설정되지 않았습니다.")
+except (KeyError, FileNotFoundError):
+    st.error("🚨 서버 설정 오류: Streamlit Secrets에 API 키와 비밀번호가 설정되지 않았습니다.")
     st.stop()
 
 # -----------------------------------------------------------------------------
@@ -42,7 +43,7 @@ def check_password():
         with col2:
             with st.container(border=True):
                 st.markdown("<h2 style='text-align: center;'>🔒 Team Access</h2>", unsafe_allow_html=True)
-                st.caption("CCFM 전용 접속 코드를 입력하세요.")
+                st.caption("접속 코드를 입력하세요.")
                 st.text_input(label="Password", type="password", on_change=password_entered, key="password", label_visibility="collapsed", placeholder="비밀번호 입력")
                 if "password_correct" in st.session_state and not st.session_state["password_correct"]:
                     st.error("🚫 비밀번호가 일치하지 않습니다.")
@@ -55,7 +56,7 @@ if not check_password():
     st.stop()
 
 # =============================================================================
-# 메인 앱 코드
+# 메인 앱 기능 함수
 # =============================================================================
 
 @st.dialog("💡 프로그램 설명")
@@ -63,13 +64,9 @@ def show_cep_guide():
     st.markdown(
         """
         ### 1️⃣ 직접 검색 기반 분석 (Search Agent)
-        이 프로그램은 AI가 상상하는 것이 아니라, 실제 웹 검색(리뷰, 기사, 경쟁사)을 수행하여 데이터를 수집한 뒤 분석합니다.
-        
+        이 프로그램은 실제 웹 검색을 수행하여 데이터를 수집한 뒤 분석합니다.
         ### 2️⃣ 무엇을 얻을 수 있나요?
-        **'뇌피셜'이 아닌 '팩트(Fact)'에 기반한** 날카로운 경쟁 우위 전략과 CEP를 도출합니다.
-        
-        ### 3️⃣ 활용 가이드
-        검색 시간이 30초 정도 더 소요될 수 있으나, 결과의 퀄리티는 훨씬 높습니다.
+        팩트(Fact)에 기반한 경쟁 우위 전략과 CEP를 도출합니다.
         """
     )
     if st.button("전략 짜러가기! 🚀", type="primary"):
@@ -82,109 +79,25 @@ if 'cep_popup_shown' not in st.session_state:
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-with st.sidebar:
-    st.header("🎛️ 마케팅 옵션 설정")
-    st.success("✅ Real-time Search 활성화")
-    
-    st.markdown("---")
-    
-    st.subheader("1. 광고 매체 (Platform)")
-    platform = st.radio(
-        "어디에 노출할 소재인가요?",
-        ["SNS 숏폼 (릴스/틱톡)", "SNS 피드 (인스타/페북)", "GFA/배너 (네이버/카카오)", "검색광고 (TDA)"],
-        index=2
-    )
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    st.subheader("2. 톤앤매너 (Tone)")
-    tone = st.select_slider(
-        "카피의 강도를 선택하세요",
-        options=["순한맛 (공감/위로)", "논리적 (기능/정보)", "매운맛 (공포/팩폭)"],
-        value="매운맛 (공포/팩폭)"
-    )
-
-    st.markdown("---")
-    
-    with st.expander("💡 업데이트 노트 (Real Search)"):
-        st.info(
-            """
-            **[직접 검색 엔진 탑재]**
-            이제 프로그램이 직접 인터넷을 검색하여 최신 리뷰와 경쟁사 동향을 긁어옵니다.
-            Gemini는 이 '실제 데이터'를 읽고 분석하므로 훨씬 정확합니다.
-            """
-        )
-    
-    st.caption("Developed for **Performance Marketers & Designers**")
-
-st.title("🌐 CEP 퍼포먼스 마케팅 솔루션")
-
-st.info("💡 **CEP(Category Entry Point)란?** 소비자가 구매를 결심하는 '결정적 계기(상황)'를 뜻하며, 브랜드보다 상황을 먼저 선점하는 것이 핵심입니다.")
-
-st.markdown(
-    """
-    **AI를 100% 신뢰하지 말고 아이디어만 얻으세요! 그리고 더 나은 방향성으로 나아가세요.**
-    """
-)
-
-st.divider()
-
-tab1, tab2 = st.tabs(["⚡ 전략 생성", "🗂️ 저장된 기록"])
-
-with tab1:
-    col1, col2 = st.columns([1, 1])
-
-    with col1:
-        st.subheader("📦 제품 및 타겟 정보")
-        
-        product_name = st.text_input("제품/서비스 명 (정확히 입력)", placeholder="예: 다이어트학교 리압스텝퍼")
-        target_audience = st.text_input("🎯 핵심 타겟", placeholder="예: 4050 갱년기 여성, 운동 싫어하는 주부")
-        product_details = st.text_area(
-            "제품 상세 특징 (추가 정보)", 
-            placeholder="제품의 고유한 강점이나 이벤트 정보를 적어주시면 검색 결과와 결합하여 분석합니다.",
-            height=200
-        )
-        
-        st.caption("💡 팁1: 제품명을 정확히 적어야 AI가 웹사이트와 후기를 제대로 찾아냅니다.")
-        st.caption("💡 팁2: 원하는 전략이 안나오셨나요? 다시 버튼을 누르면 새로운 전략이 도출됩니다.")
-        
-        generate_btn = st.button("🚀 웹 분석 및 전략 도출하기", use_container_width=True, type="primary")
-
-    with col2:
-        st.subheader("📊 전략 도출 결과")
-        result_container = st.container()
-
 # -----------------------------------------------------------------------------
-# Backend Logic
+# [핵심] API 및 모델 관리 로직
 # -----------------------------------------------------------------------------
 def get_best_available_model(api_key):
-    """
-    [핵심 수정] 사용 가능한 모델 목록을 조회해서
-    가장 좋은 모델의 '정확한 이름'을 가져옵니다. (404 에러 방지)
-    """
+    """할당량이 넉넉한 Flash 모델을 최우선으로 선택합니다."""
     genai.configure(api_key=api_key)
     try:
-        # 1. 사용 가능한 모델 리스트 조회
         all_models = list(genai.list_models())
-        
-        # 2. 'generateContent' 기능을 지원하는 모델만 필터링
         text_models = [m.name for m in all_models if 'generateContent' in m.supported_generation_methods]
         
-        # 3. 우선순위에 따라 모델 선택 (Flash -> Pro -> 1.0)
-        # 리스트에 있는 '정확한 이름(models/gemini-xxx)'을 반환함
-        for m in text_models:
-            if 'gemini-1.5-flash' in m: return m
-        for m in text_models:
-            if 'gemini-1.5-pro' in m: return m
-        for m in text_models:
-            if 'gemini-pro' in m: return m
-            
-        # 아무것도 없으면 첫 번째 거라도 반환
-        if text_models:
-            return text_models[0]
-        else:
-            return None
-    except Exception as e:
+        # 할당량 이슈가 적은 Flash 모델을 1, 2순위로 배치
+        priority_keywords = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
+        
+        for kw in priority_keywords:
+            for m in text_models:
+                if kw in m:
+                    return m
+        return text_models[0] if text_models else None
+    except:
         return None
 
 def perform_web_search(query, max_results=3):
@@ -193,7 +106,7 @@ def perform_web_search(query, max_results=3):
             results = list(ddgs.text(query, region='kr-kr', safesearch='off', max_results=max_results))
             search_summary = ""
             for idx, res in enumerate(results):
-                search_summary += f"[{idx+1}] 제목: {res['title']}\n내용: {res['body']}\n링크: {res['href']}\n\n"
+                search_summary += f"[{idx+1}] 제목: {res['title']}\n내용: {res['body']}\n\n"
             return search_summary if search_summary else "검색 결과 없음"
     except Exception as e:
         return f"검색 중 오류 발생: {str(e)}"
@@ -208,244 +121,86 @@ def extract_json_from_text(text):
         start_idx = text.find('[')
         end_idx = text.rfind(']')
         if start_idx != -1 and end_idx != -1:
-            json_str = text[start_idx : end_idx + 1]
-            return json.loads(json_str)
-        else:
-            clean_text = text.replace("```json", "").replace("```", "").strip()
-            return json.loads(clean_text)
-    except Exception as e:
-        raise Exception(f"JSON 파싱 실패: {str(e)}")
+            return json.loads(text[start_idx : end_idx + 1])
+        return json.loads(text.replace("```json", "").replace("```", "").strip())
+    except:
+        raise Exception("JSON 파싱 실패")
 
 def generate_strategy(api_key, name, target, details, platform, tone):
+    # 1. 검색 데이터 수집
+    search_result = perform_web_search(f"{name} 실제 후기 장단점")
     
-    # 1. [검색 단계]
-    search_query_1 = f"{name} 후기 장단점"
-    search_query_2 = f"{name} 상세페이지 특징"
+    # 2. 모델 설정 및 재시도 로직
+    active_model_name = get_best_available_model(api_key)
+    if not active_model_name:
+        return "Error: 모델을 찾을 수 없습니다."
+
+    model = genai.GenerativeModel(active_model_name)
     
-    search_result_1 = perform_web_search(search_query_1)
-    search_result_2 = perform_web_search(search_query_2)
-    
-    collected_data = f"""
-    **[웹 검색 결과 1: 실제 고객 후기]**
-    {search_result_1}
-    
-    **[웹 검색 결과 2: 제품 특징]**
-    {search_result_2}
-    """
-
-    # 2. [프롬프트 작성]
-    platform_instructions = ""
-    if "GFA/배너" in platform:
-        platform_instructions = """
-        **[🚨 중요: GFA/카카오 배너 매체 규격 준수]**
-        1. **글자 수 제한**: 메인 카피는 띄어쓰기 포함 **25자 이내**로 작성하세요. 길어지면 잘립니다.
-        2. **금지어**: '좋아요', '댓글', '공유' 언급 절대 금지.
-        3. **스타일**: '뉴스 기사 헤드라인' 또는 '커뮤니티 썰' 느낌의 텍스트형 배너 카피.
-        """
-    elif "숏폼" in platform:
-        platform_instructions = """
-        **[🚨 중요: 숏폼(릴스/틱톡) 매체 규격 준수]**
-        1. **형식**: 글자가 아닌 '영상 연출(Action)' 위주.
-        2. **Visual Guide**: 정지 이미지가 아니라, 초반 3초에 시선을 뺏는 구체적인 행동 지시문 작성.
-        3. **카피**: 자막으로 들어갈 짧은 구어체.
-        """
-    elif "피드" in platform:
-        platform_instructions = """
-        **[🚨 중요: 인스타/페북 피드 매체 규격 준수]**
-        1. **형식**: 카드뉴스 표지(썸네일).
-        2. **글자 수 제한**: 가독성을 위해 2줄 이내로 끊어지는 짧고 굵은 헤드라인.
-        """
-    else:
-        platform_instructions = """
-        **[🚨 중요: 검색광고(TDA) 매체 규격 준수]**
-        1. **글자 수 제한**: 제목 15자 이내.
-        2. **스타일**: 검색 키워드를 반드시 포함한 신뢰도 높은 문구.
-        """
-
-    compliance_instructions = """
-    **[⚠️ 심의/반려 주의 (Compliance Check)]**
-    - 표시광고법 및 의료법 위반 소지가 있는 단어('최고', '100%', '완치', '무조건', '보장', '부작용 없음')는 절대 사용하지 마세요.
-    """
-
-    tone_instructions = ""
-    if "매운맛" in tone:
-        tone_instructions = "**[🔥 톤앤매너: 극도로 매운맛]** 점잖은 경고 금지. '당신 지금 돈 버리고 있다', '망가지는 중이다' 처럼 손실 회피를 강하게 자극하세요."
-    elif "순한맛" in tone:
-        tone_instructions = "**[💧 톤앤매너: 순한맛]** 고객의 아픔에 공감하고 따뜻한 해결책을 제시하세요."
-    else:
-        tone_instructions = "**[💡 톤앤매너: 논리적]** 객관적 사실과 기능적 우위를 강조하세요."
-
     prompt = f"""
-    당신은 대한민국 최고의 퍼포먼스 마케터이자 카피라이터입니다.
+    당신은 대한민국 최고의 퍼포먼스 마케터입니다. 아래 정보를 바탕으로 CEP 전략 7가지를 JSON 형식으로만 출력하세요.
+    제품명: {name}, 타겟: {target}, 매체: {platform}, 톤: {tone}
+    검색데이터: {search_result}
+    상세설명: {details}
     
-    **[참고 자료: 실시간 웹 검색 데이터]**
-    {collected_data}
-    
-    ---
-
-    **[미션]**
-    위 검색 데이터와 아래 입력 정보를 결합하여 **최적의 CEP(Category Entry Point) 7가지**를 도출하세요.
-
-    [입력 정보]
-    - 제품명: {name}
-    - 타겟: {target}
-    - 상세 특징(참고): {details}
-    - **선택된 매체**: {platform}
-    - **선택된 톤**: {tone}
-
-    {platform_instructions}
-    {compliance_instructions}
-    {tone_instructions}
-
-    [최종 출력 포맷 (JSON)]
-    위 사고 과정을 통해 도출된 내용을 **오직 JSON 형식으로만** 출력하세요. 서론이나 부연 설명은 금지합니다.
-    
-    **[중요: 검색 키워드 추출]**
-    `ref_keyword` 필드에는 제품명(예: 리압스텝퍼)이 아닌, **광고 라이브러리에서 검색했을 때 레퍼런스가 많이 나올 법한 '대표 카테고리 키워드'(예: 다이어트, 붓기, 홈트레이닝)** 를 1개만 단답형으로 적으세요.
-
-    ```json
-    [
-      {{
-        "cep_title": "CEP N. [상황]과 [동기]를 결합한 직관적인 타이틀",
-        "situation_summary": "웹 검색 데이터와 7W 분석을 토대로 작성된 구체적인 상황 묘사 (1~2문장)",
-        "thought": "고객의 속마음/동기 (따옴표 포함한 독백)",
-        "trigger_behavior": "검색 키워드 및 행동 패턴 (화살표 활용)",
-        "concept_keyword": "컨셉 키워드 (해시태그)",
-        "ref_keyword": "레퍼런스 검색용 대표 키워드 (예: 다이어트)",
-        "hooking_copy": "타겟 저격 후킹 카피 (매체 규격 준수)",
-        "visual_guide": "매체 맞춤형 시각적 가이드",
-        "landing_section": "랜딩 페이지 구성 아이디어"
-      }},
-      ...
-    ]
-    ```
+    출력 형식은 반드시 [{{"cep_title": "...", "situation_summary": "...", "thought": "...", "trigger_behavior": "...", "concept_keyword": "...", "ref_keyword": "...", "hooking_copy": "...", "visual_guide": "...", "landing_section": "..."}}] 형태여야 합니다.
     """
-    
-    # [🔥 핵심 수정] 모델 자동 감지 후 실행
-    try:
-        # 1. 사용할 모델 이름 가져오기
-        active_model = get_best_available_model(api_key)
-        
-        if not active_model:
-            return "Error: 사용 가능한 AI 모델을 찾을 수 없습니다. (API Key 권한을 확인해주세요)"
-            
-        # 2. 찾은 모델로 생성 시도
-        model = genai.GenerativeModel(active_model)
-        config = GenerationConfig(temperature=1.0) 
-        response = model.generate_content(prompt, generation_config=config)
-        return response.text
-        
-    except Exception as e:
-        return f"Error: AI 처리 중 오류 발생. ({str(e)})"
 
-if generate_btn:
-    if not product_name or not target_audience or not product_details:
-        st.warning("⚠️ 모든 정보를 입력해주세요.")
-    else:
-        with col2:
-            with st.spinner(f"🌐 '{product_name}' 웹 검색 및 경쟁사 분석 중..."):
-                raw_text = generate_strategy(MY_API_KEY, product_name, target_audience, product_details, platform, tone)
-                
-                try:
-                    if raw_text.startswith("Error"):
-                        st.error("🚨 AI 처리 중 오류가 발생했습니다.")
+    # 429 에러 대응 재시도 루프
+    for attempt in range(3):
+        try:
+            response = model.generate_content(prompt, generation_config=GenerationConfig(temperature=0.7))
+            return response.text
+        except Exception as e:
+            if "429" in str(e):
+                time.sleep(10 * (attempt + 1)) # 점진적으로 대기 시간 증가
+                continue
+            return f"Error: {str(e)}"
+    return "Error: 할당량 초과로 인해 처리에 실패했습니다. 잠시 후 다시 시도해주세요."
+
+# -----------------------------------------------------------------------------
+# UI 레이아웃
+# -----------------------------------------------------------------------------
+with st.sidebar:
+    st.header("🎛️ 마케팅 옵션 설정")
+    platform = st.radio("매체", ["SNS 숏폼", "SNS 피드", "GFA/배너", "검색광고"], index=2)
+    tone = st.select_slider("톤", options=["순한맛", "논리적", "매운맛"], value="매운맛")
+
+st.title("🌐 CEP 퍼포먼스 마케팅 솔루션")
+tab1, tab2 = st.tabs(["⚡ 전략 생성", "🗂️ 저장된 기록"])
+
+with tab1:
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        product_name = st.text_input("제품명", placeholder="예: 다이어트학교 리압스텝퍼")
+        target_audience = st.text_input("타겟", placeholder="예: 4050 주부")
+        product_details = st.text_area("제품 특징", height=150)
+        generate_btn = st.button("🚀 전략 도출하기", use_container_width=True, type="primary")
+
+    with col2:
+        if generate_btn:
+            if not product_name or not target_audience:
+                st.warning("정보를 입력해주세요.")
+            else:
+                with st.spinner("AI가 전략을 짜고 있습니다... (약 10~30초)"):
+                    raw_text = generate_strategy(MY_API_KEY, product_name, target_audience, product_details, platform, tone)
+                    
+                    if "Error" in raw_text:
                         st.error(raw_text)
                     else:
-                        data = extract_json_from_text(raw_text)
-                        
-                        save_data = {
-                            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            "product": product_name,
-                            "target": target_audience,
-                            "platform": platform,
-                            "data": data
-                        }
-                        st.session_state.history.insert(0, save_data)
-                        
-                        visual_label = "🖼️ 상위 이미지"
-                        if "숏폼" in platform:
-                            visual_label = "🎬 숏폼 영상 기획(오프닝/연출)"
-
-                        for idx, item in enumerate(data):
-                            cep_title_text = f"📌 {item.get('cep_title', f'CEP {idx+1}')}"
-                            with st.expander(cep_title_text, expanded=True):
-                                
-                                st.markdown(f"### {item.get('cep_title', '')}")
-                                
-                                st.markdown(f"**[상황]**")
-                                st.write(item.get('situation_summary', '내용 없음'))
-                                
-                                st.markdown(f"**[생각/동기]**")
-                                thought_content = item.get('thought', '').replace('"', '')
-                                st.write(f'"{thought_content}"')
-                                
-                                st.markdown(f"**[카테고리 진입 계기(행동)]**")
-                                st.write(item.get('trigger_behavior', '내용 없음'))
-                                
-                                st.markdown("---")
-                                
-                                st.markdown("##### 🚀 퍼포먼스 활용 포인트")
-                                st.info(f"**🏷️ 컨셉 키워드:** {item.get('concept_keyword', '키워드 없음')}")
-                                
-                                copy_text = item.get('hooking_copy', '')
-                                risks = check_compliance_risks(copy_text)
-                                
-                                if risks:
-                                    st.error(f"**⚡ 후킹 카피:** {copy_text}")
-                                    st.warning(f"⚠️ **[주의]** 심의 반려 위험 단어 감지: {', '.join(risks)}")
-                                else:
-                                    st.error(f"**⚡ 후킹 카피:** {copy_text}")
-                                
-                                st.write(f"**{visual_label}:** {item.get('visual_guide', '')}")
-                                st.write(f"**📄 랜딩 섹션:** {item.get('landing_section', '')}")
-                                
-                                st.markdown("---")
-                                
-                                st.markdown("**📚 디자인 레퍼런스 검색**")
-                                search_kwd = item.get('ref_keyword', item.get('concept_keyword', product_name))
-                                search_kwd_encoded = search_kwd.replace(" ", "+")
-                                
-                                col_ref1, col_ref2, col_ref3, col_ref4, col_ref5 = st.columns(5)
-                                with col_ref1:
-                                    st.link_button("📌 핀터레스트", f"https://www.pinterest.co.kr/search/pins/?q={search_kwd_encoded}")
-                                with col_ref2:
-                                    st.link_button("📘 Meta 광고", f"https://www.facebook.com/ads/library/?ad_type=all&q={search_kwd_encoded}")
-                                with col_ref3:
-                                    st.link_button("💚 네이버(Ref)", f"https://search.naver.com/search.naver?where=image&query={search_kwd_encoded}")
-                                with col_ref4:
-                                    st.link_button("🟥 유튜브", f"https://www.youtube.com/results?search_query={search_kwd_encoded}")
-                                with col_ref5:
-                                    st.link_button("🎵 틱톡", f"https://www.tiktok.com/search?q={search_kwd_encoded}")
-                                
-                                st.markdown("**🗣️ 실제 고객 반응(VOC) & 기사 확인**")
-                                kwd_for_voc = item.get('concept_keyword', '')
-                                voc_query = f"{product_name} {kwd_for_voc}"
-                                voc_encoded = voc_query.replace(" ", "+")
-                                
-                                c1, c2, c3 = st.columns(3)
-                                with c1:
-                                    st.link_button("🟢 네이버 블로그 후기", f"https://search.naver.com/search.naver?where=blog&query={voc_encoded}")
-                                with c2:
-                                    st.link_button("☕ 네이버 카페 반응", f"https://search.naver.com/search.naver?where=article&query={voc_encoded}")
-                                with c3:
-                                    st.link_button("📰 관련 뉴스/기사", f"https://www.google.com/search?q={voc_encoded}&tbm=nws")
-
-                        df = pd.DataFrame(data)
-                        csv = df.to_csv(index=False).encode('utf-8-sig')
-                        st.download_button("📥 전략 리포트 엑셀 다운로드", csv, f"CEP_Logic_Strategy_{product_name}.csv", "text/csv", type="primary")
-
-                except Exception as e:
-                    st.error(f"데이터 처리 중 오류가 발생했습니다. ({str(e)})")
-                    st.text("▼ AI가 반환한 원본 데이터 (디버깅용) ▼")
-                    st.text(raw_text)
+                        try:
+                            data = extract_json_from_text(raw_text)
+                            st.session_state.history.insert(0, {"timestamp": datetime.datetime.now().strftime("%H:%M:%S"), "product": product_name, "data": data})
+                            for item in data:
+                                with st.expander(f"📌 {item['cep_title']}", expanded=True):
+                                    st.write(f"**상황:** {item['situation_summary']}")
+                                    st.error(f"**후킹 카피:** {item['hooking_copy']}")
+                                    st.caption(f"비주얼 가이드: {item['visual_guide']}")
+                        except:
+                            st.error("결과 해석 중 오류가 발생했습니다. 다시 시도해 주세요.")
+                            st.text(raw_text)
 
 with tab2:
-    if not st.session_state.history:
-        st.info("아직 기록이 없습니다.")
-    else:
-        for h in st.session_state.history:
-            h_platform = h.get('platform', '일반')
-            with st.expander(f"🕒 {h['timestamp']} - {h['product']} ({h_platform})"):
-                h_df = pd.DataFrame(h['data'])
-                st.download_button("📥 엑셀 다운로드", h_df.to_csv(index=False).encode('utf-8-sig'), f"History_{h['timestamp']}.csv")
-                st.dataframe(h_df[['cep_title', 'hooking_copy', 'visual_guide']])
+    for h in st.session_state.history:
+        st.write(f"🕒 {h['timestamp']} - {h['product']}")
+        st.json(h['data'])
