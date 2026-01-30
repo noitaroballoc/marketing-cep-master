@@ -4,8 +4,8 @@ from google.generativeai.types import GenerationConfig
 import pandas as pd
 import json
 import datetime
-import time  # 재시도 로직을 위해 추가
-from duckduckgo_search import DDGS  # 실시간 웹 검색 안정화
+import time
+from duckduckgo_search import DDGS 
 
 # -----------------------------------------------------------------------------
 # [보안] 비밀번호 & API 키 설정
@@ -72,8 +72,10 @@ def show_cep_guide():
         """
         ### 1️⃣ 이 프로그램의 본질
         단순 자동화가 아닌, 광고 운영 및 소재 제작을 위한 '아이디어와 레퍼런스'를 제공하는 '러닝메이트'입니다.
+        
         ### 2️⃣ 무엇을 얻을 수 있나요?
         CEP(상황) 분석을 통해 "왜 경쟁사가 아닌 우리 제품이어야 하는가?"에 대한 명확한 구매 이유와 소구점을 도출합니다.
+        
         ### 3️⃣ 활용 가이드
         AI가 제안한 전략을 그대로 쓰기보다, '팀원들의 인사이트를 더해' 우리 브랜드만의 날카로운 무기로 발전시켜 주세요.
         """
@@ -132,43 +134,33 @@ with tab1:
         result_container = st.container()
 
 # -----------------------------------------------------------------------------
-# 로직 구현 부분 (에러 방지 강화)
+# [교체된 핵심 로직] 429 에러 방지 및 모델 고정
 # -----------------------------------------------------------------------------
-def find_active_model(api_key):
-    genai.configure(api_key=api_key)
-    try:
-        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        priority_models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
-        for p in priority_models:
-            for m in available_models:
-                if p in m: return m
-        return available_models[0] if available_models else 'models/gemini-1.5-flash'
-    except:
-        return 'models/gemini-1.5-flash'
-
 def perform_search_logic(query):
     try:
         with DDGS() as ddgs:
-            results = list(ddgs.text(query, region='kr-kr', max_results=3))
-            return "\n".join([f"제목: {r['title']}\n내용: {r['body']}" for r in results])
+            # 토큰 소모를 줄이기 위해 결과를 2개로 제한
+            results = list(ddgs.text(query, region='kr-kr', max_results=2))
+            return "\n".join([f"제목: {r['title']}\n내용: {r['body'][:300]}" for r in results])
     except:
-        return "검색 결과를 불러올 수 없습니다."
+        return "검색 데이터를 불러오지 못했습니다."
 
 def check_compliance_risks(text):
     risky_words = ["최고", "100%", "완치", "무조건", "보장", "부작용 없", "즉시", "유일", "최초"]
     return [word for word in risky_words if word in text]
 
 def generate_strategy(api_key, name, target, details, platform, tone):
-    search_data = perform_search_logic(f"{name} 실제 고객 후기 및 장단점")
+    search_data = perform_search_logic(f"{name} 실제 고객 후기 장단점")
     
-    # 지침/톤 설정 로직 (기존과 동일)
-    # ... (생략된 platform_instructions, tone_instructions 로직은 프롬프트에 포함됨) ...
+    genai.configure(api_key=api_key)
+    # [수정] 할당량이 매우 적은 2.5-pro 대신 1.5-flash로 강제 고정
+    model = genai.GenerativeModel('gemini-1.5-flash')
     
     prompt = f"""
-    당신은 대한민국 최고의 퍼포먼스 마케터입니다. 검색된 실제 데이터와 입력 정보를 결합하여 최적의 CEP 7가지를 도출하세요.
+    당신은 대한민국 최고의 퍼포먼스 마케터입니다. 검색된 데이터와 입력 정보를 결합하여 최적의 CEP 7가지를 도출하세요.
     [참고 데이터]: {search_data}
     [입력]: 제품명:{name}, 타겟:{target}, 특징:{details}, 매체:{platform}, 톤:{tone}
-    반드시 아래 JSON 형식으로만 출력하세요. 다른 설명은 금지합니다.
+    반드시 JSON 배열 형식으로만 출력하세요.
     ```json
     [
       {{
@@ -180,21 +172,23 @@ def generate_strategy(api_key, name, target, details, platform, tone):
     ```
     """
 
-    active_model = find_active_model(api_key)
-    model = genai.GenerativeModel(active_model)
-
-    # 🚀 429 에러 방지용 재시도 로직
+    # [수정] 429 에러 발생 시 최대 30초 대기하며 3번 재시도
     for attempt in range(3):
         try:
             response = model.generate_content(prompt, generation_config=GenerationConfig(temperature=0.8))
             return response.text
         except Exception as e:
             if "429" in str(e):
-                time.sleep(15 * (attempt + 1))
+                wait_time = 15 * (attempt + 1)
+                st.warning(f"⚠️ 할당량 초과로 {wait_time}초 후 재시도합니다... ({attempt+1}/3)")
+                time.sleep(wait_time)
                 continue
             return f"Error: {str(e)}"
-    return "Error: 할당량 초과. 잠시 후 다시 시도해 주세요."
+    return "Error: 일일 할당량이 완전히 소진되었습니다. 잠시 후 다시 시도하거나 다른 API 키를 사용해 주세요."
 
+# -----------------------------------------------------------------------------
+# 결과 렌더링 (기존 UI 유지)
+# -----------------------------------------------------------------------------
 if generate_btn:
     if not product_name or not target_audience or not product_details:
         st.warning("⚠️ 모든 정보를 입력해주세요.")
@@ -218,7 +212,7 @@ if generate_btn:
                         for idx, item in enumerate(data):
                             with st.expander(f"📌 {item.get('cep_title', f'CEP {idx+1}')}", expanded=True):
                                 st.markdown(f"**[상황]**\n{item.get('situation_summary', '')}")
-                                st.markdown(f"**[생각/동기]**\n\"{item.get('thought', '').replace('\"', '')}\"")
+                                st.markdown(f"**[생각/동기]**\n\"{item.get('thought', '')}\"")
                                 st.markdown(f"**[행동 패턴]**\n{item.get('trigger_behavior', '')}")
                                 st.markdown("---")
                                 st.subheader("🚀 퍼포먼스 활용 포인트")
@@ -226,17 +220,14 @@ if generate_btn:
                                 
                                 copy_text = item.get('hooking_copy', '')
                                 risks = check_compliance_risks(copy_text)
+                                st.error(f"**⚡ 후킹 카피:** {copy_text}")
                                 if risks:
-                                    st.error(f"**⚡ 후킹 카피:** {copy_text}")
                                     st.warning(f"⚠️ 심의 주의: {', '.join(risks)}")
-                                else:
-                                    st.error(f"**⚡ 후킹 카피:** {copy_text}")
                                 
                                 st.write(f"**{visual_label}:** {item.get('visual_guide', '')}")
                                 st.write(f"**📄 랜딩 섹션:** {item.get('landing_section', '')}")
                                 st.markdown("---")
                                 
-                                # 하단 링크 버튼들 (핀터레스트, 메타 등 - 기존 코드 동일)
                                 search_kwd = item.get('ref_keyword', product_name).replace(" ", "+")
                                 c1, c2, c3, c4, c5 = st.columns(5)
                                 c1.link_button("📌 핀터", f"https://www.pinterest.co.kr/search/pins/?q={search_kwd}")
@@ -247,9 +238,8 @@ if generate_btn:
 
                         df = pd.DataFrame(data)
                         st.download_button("📥 엑셀 다운로드", df.to_csv(index=False).encode('utf-8-sig'), f"CEP_{product_name}.csv", "text/csv", type="primary")
-
-                except Exception as e:
-                    st.error("데이터 처리 중 오류가 발생했습니다.")
+                except:
+                    st.error("데이터 해석 중 오류가 발생했습니다. AI 응답 형식을 확인해 주세요.")
                     st.text(raw_text)
 
 with tab2:
